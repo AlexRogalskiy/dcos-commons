@@ -25,6 +25,7 @@ import com.mesosphere.sdk.specification.DefaultTaskSpec;
 import com.mesosphere.sdk.specification.DefaultTransportEncryptionSpec;
 import com.mesosphere.sdk.specification.DefaultVolumeSpec;
 import com.mesosphere.sdk.specification.DiscoverySpec;
+import com.mesosphere.sdk.specification.DockerVolumeSpec;
 import com.mesosphere.sdk.specification.GoalState;
 import com.mesosphere.sdk.specification.HealthCheckSpec;
 import com.mesosphere.sdk.specification.HostVolumeSpec;
@@ -536,6 +537,9 @@ public final class YAMLToInternalMappers {
       for (RawVolume rawVolume : rawVolumes.values()) {
         resourceSetBuilder.addVolume(
             rawVolume.getType(),
+            rawVolume.getDockerVolumeName(),
+            rawVolume.getDockerDriverName(),
+            rawVolume.getDockerDriverOptions(),
             Double.valueOf(rawVolume.getSize()),
             rawVolume.getPath(),
             rawVolume.getProfiles());
@@ -544,6 +548,9 @@ public final class YAMLToInternalMappers {
     if (rawSingleVolume != null) {
       resourceSetBuilder.addVolume(
           rawSingleVolume.getType(),
+          rawSingleVolume.getDockerVolumeName(),
+          rawSingleVolume.getDockerDriverName(),
+          rawSingleVolume.getDockerDriverOptions(),
           Double.valueOf(rawSingleVolume.getSize()),
           rawSingleVolume.getPath(),
           rawSingleVolume.getProfiles());
@@ -593,7 +600,7 @@ public final class YAMLToInternalMappers {
         .build();
   }
 
-  private static DefaultVolumeSpec convertVolume(
+  private static VolumeSpec convertVolume(
       RawVolume rawVolume, String role, String preReservedRole, String principal)
   {
     VolumeSpec.Type volumeTypeEnum;
@@ -605,7 +612,19 @@ public final class YAMLToInternalMappers {
           rawVolume.getType(), rawVolume.getPath(), Arrays.asList(VolumeSpec.Type.values())));
     }
 
-    return volumeTypeEnum == VolumeSpec.Type.ROOT
+    if (volumeTypeEnum == VolumeSpec.Type.DOCKER) {
+      return new DockerVolumeSpec(
+        rawVolume.getSize(),
+        volumeTypeEnum,
+        rawVolume.getDockerVolumeName(),
+        rawVolume.getDockerDriverName(),
+        rawVolume.getDockerDriverOptions(),
+        rawVolume.getPath(),
+        role,
+        preReservedRole,
+        principal);
+    } else {
+      return volumeTypeEnum == VolumeSpec.Type.ROOT
         ? DefaultVolumeSpec.createRootVolume(
         rawVolume.getSize(),
         rawVolume.getPath(),
@@ -619,6 +638,7 @@ public final class YAMLToInternalMappers {
         role,
         preReservedRole,
         principal);
+    }
   }
 
   private static Map<String, String> convertLabels(

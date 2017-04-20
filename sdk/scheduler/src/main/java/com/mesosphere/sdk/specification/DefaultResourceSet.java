@@ -183,6 +183,9 @@ public final class DefaultResourceSet implements ResourceSet {
 
     public Builder addVolume(
         String volumeType,
+        String dockerVolumeName,
+        String dockerDriverName,
+        String dockerDriverOptions,
         Double size,
         String containerPath,
         List<String> profiles)
@@ -216,6 +219,18 @@ public final class DefaultResourceSet implements ResourceSet {
 
         volumes.add(DefaultVolumeSpec.createRootVolume(
             size, containerPath, role, preReservedRole, principal));
+      } else if (volumeTypeEnum == VolumeSpec.Type.DOCKER) {
+        VolumeSpec volume;
+        volume = new DockerVolumeSpec(size,
+                    volumeTypeEnum,
+                    dockerVolumeName,
+                    dockerDriverName,
+                    dockerDriverOptions,
+                    containerPath,
+                    role,
+                    preReservedRole,
+                    principal);
+        volumes.add(volume);
       } else {
         volumes.add(DefaultVolumeSpec.createMountVolume(
             size, containerPath, profiles, role, preReservedRole, principal));
@@ -225,11 +240,11 @@ public final class DefaultResourceSet implements ResourceSet {
     }
 
     public Builder addRootVolume(Double size, String containerPath) {
-      return addVolume("ROOT", size, containerPath, Collections.emptyList());
+      return addVolume("ROOT", "", "", "", size, containerPath, Collections.emptyList());
     }
 
     public Builder addMountVolume(Double size, String containerPath, List<String> profiles) {
-      return addVolume("MOUNT", size, containerPath, profiles);
+      return addVolume("MOUNT", "", "", "", size, containerPath, profiles);
     }
 
     @Override

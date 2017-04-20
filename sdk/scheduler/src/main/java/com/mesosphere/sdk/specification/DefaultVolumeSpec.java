@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 @SuppressWarnings({
     "checkstyle:DeclarationOrder",
 })
-public final class DefaultVolumeSpec extends DefaultResourceSpec implements VolumeSpec {
+public class DefaultVolumeSpec extends DefaultResourceSpec implements VolumeSpec {
 
   /**
    * Disallow slashes in the container path. If a slash is used, Mesos will silently ignore the mount operation for
@@ -82,7 +82,7 @@ public final class DefaultVolumeSpec extends DefaultResourceSpec implements Volu
   }
 
   @JsonCreator
-  private DefaultVolumeSpec(
+  public DefaultVolumeSpec(
       @JsonProperty("type") Type type,
       @JsonProperty("container-path") String containerPath,
       @JsonProperty("profiles") List<String> profiles,
@@ -129,6 +129,10 @@ public final class DefaultVolumeSpec extends DefaultResourceSpec implements Volu
         getRole(),
         getPreReservedRole(),
         getPrincipal());
+  }
+
+  public double getSize() {
+    return getValue().getScalar().getValue();
   }
 
   @Override

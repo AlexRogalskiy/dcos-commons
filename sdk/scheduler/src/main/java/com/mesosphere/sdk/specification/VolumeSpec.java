@@ -33,6 +33,7 @@ public interface VolumeSpec extends ResourceSpec {
   enum Type {
     ROOT,
     PATH,
-    MOUNT
+    MOUNT,
+    DOCKER
   }
 }

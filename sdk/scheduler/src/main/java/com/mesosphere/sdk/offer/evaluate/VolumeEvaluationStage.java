@@ -142,7 +142,14 @@ public final class VolumeEvaluationStage implements OfferEvaluationStage {
           .build();
     }
 
-    if (volumeSpec.getType().equals(VolumeSpec.Type.ROOT)) {
+    if (volumeSpec.getType().equals(VolumeSpec.Type.DOCKER)) {
+      return EvaluationOutcome.pass(
+          this,
+          offerRecommendations,
+          "No resources required for DOCKER volume on '%s'",
+          mesosResourcePool.getOffer().getHostname())
+          .build();
+    } else if (volumeSpec.getType().equals(VolumeSpec.Type.ROOT)) {
       OfferEvaluationUtils.ReserveEvaluationOutcome reserveEvaluationOutcome =
           OfferEvaluationUtils.evaluateSimpleResource(
               logger,
