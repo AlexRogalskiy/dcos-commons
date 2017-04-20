@@ -8,8 +8,7 @@
         "name": {
           "description": "Unique name for the Cassandra service instance consisting of a series of words separated by slashes. Each word must be at least 1 alphanumeric character and may only contain digits (`0-9`), dashes (`-`), dots (`.`), and lowercase letters (`a-z`). The word may not begin or end with a dash",
           "type": "string",
-          "pattern": "^(\\/?((\\.\\.)|(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9]))?($|\\/))+$",
-          "default": "cassandra"
+          "default": "cassandra-px"
         },
         "user": {
           "description": "The user that runs the Cassandra nodes and owns the Mesos sandbox.",
@@ -287,10 +286,15 @@
           "description": "The amount of disk, in MB, allocated to the Cassandra process.",
           "default": 10240
         },
-        "disk_type": {
-          "type": "string",
-          "description": "Disk type to be used for storing Cassandra data. See documentation. [ROOT, MOUNT]",
-          "default": "ROOT"
+        "portworx_volume_name":{
+          "description":"Portworx volume name",
+          "type":"string",
+          "default": "Cassandra"
+        },
+        "portworx_volume_options":{
+          "description":"Portworx volume options. Comma separated key=value pairs",
+          "type":"string",
+          "default": ""
         },
         "placement_constraint": {
           "type": "string",
