@@ -49,7 +49,10 @@ pods:
     {{/TASKCFG_ALL_SECURE_JMX_ENABLED}}
     volume:
       path: container-path
-      type: {{CASSANDRA_DISK_TYPE}}
+      type: DOCKER
+      docker_volume_driver: pxd
+      docker_volume_name: {{{CASSANDRA_DOCKER_VOLUME_NAME}}}
+      docker_driver_options: {{{CASSANDRA_DOCKER_DRIVER_OPTIONS}}}
       size: {{CASSANDRA_DISK_MB}}
       {{#CASSANDRA_VOLUME_PROFILE}}
       profiles:
