@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import java.util.*;
 /**
  * This class provides a default implementation of the VolumeSpec interface.
  */
@@ -30,6 +31,21 @@ public final class DefaultVolumeSpec extends DefaultResourceSpec implements Volu
    */
   private static final Pattern VALID_CONTAINER_PATH_PATTERN =
       Pattern.compile("[a-zA-Z0-9]+([a-zA-Z0-9_-]*)*");
+    @JsonCreator
+    public DefaultVolumeSpec(
+            @JsonProperty("type") Type type,
+            @JsonProperty("container-path") String containerPath,
+            @JsonProperty("name") String name,
+            @JsonProperty("value") Protos.Value value,
+            @JsonProperty("role") String role,
+            @JsonProperty("pre-reserved-role") String preReservedRole,
+            @JsonProperty("principal")  String principal) {
+        super(name, value, role, preReservedRole, principal);
+        this.type = type;
+        this.containerPath = containerPath;
+
+        ValidationUtils.validate(this);
+    }
 
   /**
    * Limit the length and characters in a profile name. A profile name should consist of alphanumeric
@@ -38,7 +54,15 @@ public final class DefaultVolumeSpec extends DefaultResourceSpec implements Volu
    */
   private static final Pattern VALID_PROFILE_PATTERN = Pattern.compile("[a-zA-Z0-9_.-]{1,128}");
 
-  private final Type type;
+  // JDP: private final Type type;
+    public double getSize() {
+        return getValue().getScalar().getValue();
+    }
+
+    @Override
+    public String getContainerPath() {
+        return containerPath;
+    }
 
   private final String containerPath;
 

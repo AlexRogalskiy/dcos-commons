@@ -695,6 +695,130 @@ public final class DefaultServiceSpec implements ServiceSpec {
     public Builder region(String region) {
       this.region = region;
       return this;
+    public static class ConfigFactory implements ConfigurationFactory<ServiceSpec> {
+
+        /**
+         * Subtypes to be registered by defaults. This list should include all
+         * {@link PlacementRule}s that are included in the library.
+         */
+        private static final Collection<Class<?>> defaultRegisteredSubtypes = Arrays.asList(
+                AgentRule.class,
+                AndRule.class,
+                AnyMatcher.class,
+                AttributeRule.class,
+                DefaultResourceSpec.class,
+                DefaultVolumeSpec.class,
+                DockerVolumeSpec.class,
+                ExactMatcher.class,
+                HostnameRule.class,
+                InvalidPlacementRule.class,
+                IsLocalRegionRule.class,
+                MaxPerAttributeRule.class,
+                MaxPerHostnameRule.class,
+                MaxPerRegionRule.class,
+                MaxPerZoneRule.class,
+                NamedVIPSpec.class,
+                NotRule.class,
+                OrRule.class,
+                PassthroughRule.class,
+                PortSpec.class,
+                RegexMatcher.class,
+                RegionRule.class,
+                RoundRobinByAttributeRule.class,
+                RoundRobinByHostnameRule.class,
+                RoundRobinByRegionRule.class,
+                RoundRobinByZoneRule.class,
+                TaskTypeLabelConverter.class,
+                TaskTypeRule.class,
+                ZoneRule.class,
+                DefaultSecretSpec.class);
+
+        private final ObjectMapper objectMapper;
+        private final GoalState referenceTerminalGoalState;
+
+        /**
+         * @see DefaultServiceSpec#getConfigurationFactory(ServiceSpec, Collection)
+         */
+        private ConfigFactory(Collection<Class<?>> additionalSubtypes, ServiceSpec serviceSpec) {
+            objectMapper = SerializationUtils.registerDefaultModules(new ObjectMapper());
+            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            for (Class<?> subtype : defaultRegisteredSubtypes) {
+                objectMapper.registerSubtypes(subtype);
+            }
+            for (Class<?> subtype : additionalSubtypes) {
+                objectMapper.registerSubtypes(subtype);
+            }
+
+            SimpleModule module = new SimpleModule();
+            module.addDeserializer(GoalState.class, new GoalStateDeserializer());
+            objectMapper.registerModule(module);
+
+            referenceTerminalGoalState = getReferenceTerminalGoalState(serviceSpec);
+        }
+
+        @VisibleForTesting
+        public GoalStateDeserializer getGoalStateDeserializer() {
+            return new GoalStateDeserializer();
+        }
+
+        @Override
+        public ServiceSpec parse(byte[] bytes) throws ConfigStoreException {
+            try {
+                return SerializationUtils.fromString(
+                        new String(bytes, CHARSET), DefaultServiceSpec.class, objectMapper);
+            } catch (IOException e) {
+                throw new ConfigStoreException(Reason.SERIALIZATION_ERROR,
+                        "Failed to deserialize DefaultServiceSpecification from JSON: " + e.getMessage(), e);
+            }
+        }
+
+        private GoalState getReferenceTerminalGoalState(ServiceSpec serviceSpec) {
+            Collection<TaskSpec> serviceTasks =
+                    serviceSpec.getPods().stream().flatMap(p -> p.getTasks().stream()).collect(Collectors.toList());
+            for (TaskSpec taskSpec : serviceTasks) {
+                if (taskSpec.getGoal().equals(GoalState.FINISHED)) {
+                    return GoalState.FINISHED;
+                }
+            }
+
+            return GoalState.ONCE;
+        }
+
+        @VisibleForTesting
+        public static final Collection<Class<?>> getDefaultRegisteredSubtypes() {
+            return defaultRegisteredSubtypes;
+        }
+
+        /**
+         * Custom deserializer for goal states to accomodate transition from FINISHED to ONCE/FINISH.
+         */
+        public class GoalStateDeserializer extends StdDeserializer<GoalState> {
+
+            public GoalStateDeserializer() {
+                this(null);
+            }
+
+            protected GoalStateDeserializer(Class<?> vc) {
+                super(vc);
+            }
+
+            @Override
+            public GoalState deserialize(
+                    JsonParser p, DeserializationContext ctxt) throws IOException, JsonParseException {
+                String value = ((TextNode) p.getCodec().readTree(p)).textValue();
+
+                if (value.equals("FINISHED") || value.equals("ONCE")) {
+                    return referenceTerminalGoalState;
+                } else if (value.equals("FINISH")) {
+                    return GoalState.FINISH;
+                } else if (value.equals("RUNNING")) {
+                    return GoalState.RUNNING;
+                } else {
+                    logger.warn("Found unknown goal state in config store: {}", value);
+                    return GoalState.UNKNOWN;
+                }
+            }
+        }
     }
 
     /**

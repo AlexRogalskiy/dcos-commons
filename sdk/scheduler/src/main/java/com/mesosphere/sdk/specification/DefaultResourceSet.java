@@ -109,6 +109,11 @@ public final class DefaultResourceSet implements ResourceSet {
   public int hashCode() {
     return HashCodeBuilder.reflectionHashCode(this);
   }
+  
+  @Override
+  public String toString() {
+    return ToStringBuilder.reflectionToString(this);
+  }
 
   /**
    * {@code DefaultResourceSet} builder static inner class.
@@ -234,10 +239,50 @@ public final class DefaultResourceSet implements ResourceSet {
       return addVolume("MOUNT", size, containerPath, profiles);
     }
 
-    @Override
-    public String toString() {
-      return ToStringBuilder.reflectionToString(this);
-    }
+        public Builder addVolume(String volumeType,
+                                 String dockerVolumeName,
+                                 String dockerDriverName,
+                                 String dockerDriverOptions,
+                                 Double size,
+                                 String containerPath) {
+            VolumeSpec.Type volumeTypeEnum;
+            try {
+                volumeTypeEnum = VolumeSpec.Type.valueOf(volumeType);
+            } catch (Exception e) {
+                throw new IllegalArgumentException(String.format(
+                        "Provided volume type '%s' for path '%s' is invalid. Expected type to be one of: %s",
+                        volumeType, containerPath, Arrays.asList(VolumeSpec.Type.values())));
+            }
+
+            VolumeSpec volume;
+            if (volumeTypeEnum == VolumeSpec.Type.DOCKER) {
+                volume = new DockerVolumeSpec(
+                    size,
+                    volumeTypeEnum,
+                    dockerVolumeName,
+                    dockerDriverName,
+                    dockerDriverOptions,
+                    containerPath,
+                    role,
+                    preReservedRole,
+                    principal);
+            } else {
+                volume = new DefaultVolumeSpec(
+                        size,
+                        volumeTypeEnum,
+                        containerPath,
+                        role,
+                        preReservedRole,
+                        principal);
+            }
+            if (volumes.stream()
+                    .anyMatch(volumeSpecification ->
+                            Objects.equals(volumeSpecification.getContainerPath(), containerPath))) {
+                throw new IllegalStateException("Cannot configure multiple volumes with the same containerPath");
+            }
+            volumes.add(volume);
+            return this;
+        }
 
     /**
      * Adds {@code resource} and returns a reference to this Builder so that the methods can be chained together.

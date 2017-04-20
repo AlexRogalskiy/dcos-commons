@@ -8,41 +8,55 @@ import java.util.List;
 /**
  * Raw YAML volume.
  */
-public final class RawVolume {
+public class RawVolume {
 
-  private final String path;
+    private final String path;
+    private final String type;
+    private final String dockerDriverName;
+    private final String dockerVolumeName;
+    private final String dockerDriverOptions;
+    private final List<String> profiles;
+    private final int size;
 
-  private final String type;
+    private RawVolume(
+            @JsonProperty("path") String path,
+            @JsonProperty("type") String type,
+            @JsonProperty("docker_volume_driver") String dockerDriverName,
+            @JsonProperty("docker_volume_name") String dockerVolumeName,
+            @JsonProperty("docker_driver_options") String dockerDriverOptions,
+            @JsonProperty("profiles") List<String> profiles,
+            @JsonProperty("size") int size) {
+        this.path = path;
+        this.type = type;
+        this.size = size;
+        this.dockerDriverName = dockerDriverName;
+        this.dockerVolumeName = dockerVolumeName;
+        this.dockerDriverOptions = dockerDriverOptions;
+    }
 
-  private final List<String> profiles;
+    public String getPath() {
+        return path;
+    }
 
-  private final int size;
+    public String getType() {
+        return type;
+    }
 
-  private RawVolume(
-      @JsonProperty("path") String path,
-      @JsonProperty("type") String type,
-      @JsonProperty("profiles") List<String> profiles,
-      @JsonProperty("size") int size)
-  {
-    this.path = path;
-    this.type = type;
-    this.profiles = profiles == null ? Collections.emptyList() : profiles;
-    this.size = size;
-  }
+    public String getDockerDriverName() {
+        return dockerDriverName;
+    }
 
-  public String getPath() {
-    return path;
-  }
+    public String getDockerVolumeName() {
+        return dockerVolumeName;
+    }
 
-  public String getType() {
-    return type;
-  }
-
-  public List<String> getProfiles() {
-    return profiles;
-  }
-
-  public int getSize() {
-    return size;
-  }
+    public String getDockerDriverOptions() {
+        return dockerDriverOptions;
+    }
+    public List<String> getProfiles() {
+      return profiles;
+    }
+    public int getSize() {
+        return size;
+    }
 }

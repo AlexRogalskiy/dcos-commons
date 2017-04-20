@@ -232,6 +232,33 @@ public final class Main {
     //   ./hello-world foo.yml,bar.yml,baz.yml
     for (String arg : args) {
       yamlPaths.addAll(Splitter.on(',').trimResults().splitToList(arg));
+    /**
+     * Example of constructing a custom ServiceSpec in Java, without a YAML file.
+     */
+    private static ServiceSpec createSampleServiceSpec(SchedulerConfig schedulerConfig) {
+        return DefaultServiceSpec.newBuilder()
+                .name("hello-world")
+                .principal("hello-world-principal")
+                .zookeeperConnection("master.mesos:2181")
+                .addPod(DefaultPodSpec.newBuilder(schedulerConfig.getExecutorURI())
+                        .count(COUNT)
+                        .type(POD_TYPE)
+                        .addTask(DefaultTaskSpec.newBuilder()
+                                .name(TASK_NAME)
+                                .goalState(GoalState.RUNNING)
+                                .commandSpec(DefaultCommandSpec.newBuilder(new TaskEnvRouter().getConfig(POD_TYPE))
+                                        .value("echo hello >> hello-container-path/output && sleep 1000")
+                                        .build())
+                                .resourceSet(DefaultResourceSet
+                                        .newBuilder("hello-world-role", Constants.ANY_ROLE, "hello-world-principal")
+                                        .id("hello-resources")
+                                        .cpus(CPUS)
+                                        .memory(256.0)
+                                        .addVolume("ROOT", "", "", null, 5000.0, "hello-container-path")
+                                        .build())
+                                .build())
+                        .build())
+                .build();
     }
     LOGGER.info("Using YAML examples: {}", yamlPaths);
     return yamlPaths.stream()
