@@ -35,19 +35,68 @@ import java.util.Optional;
 /**
  * Main entry point for the Scheduler.
  */
-@SuppressWarnings({
-    "checkstyle:MultipleStringLiterals"
-})
-public final class Main {
-  static final String SERVICE_ZK_ROOT_TASKENV = "SERVICE_ZK_ROOT";
+public class Main {
+    private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
+    private static final String AUTH_TO_LOCAL = "AUTH_TO_LOCAL";
+    private static final String DECODED_AUTH_TO_LOCAL = "DECODED_" + AUTH_TO_LOCAL;
+    private static final String TASKCFG_ALL_AUTH_TO_LOCAL = TaskEnvRouter.TASKCFG_GLOBAL_ENV_PREFIX + AUTH_TO_LOCAL;
+    private static final String JOURNAL_POD_TYPE = "journal";
+    private static final String NAME_POD_TYPE = "name";
+    private static final String DATA_POD_TYPE = "data";
+    private static final String YARN_POD_TYPE = "yarn";
 
-  static final String HDFS_SITE_XML = "hdfs-site.xml";
+    static final String SERVICE_ZK_ROOT_TASKENV = "SERVICE_ZK_ROOT";
+    static final String HDFS_SITE_XML = "hdfs-site.xml";
+    static final String CORE_SITE_XML = "core-site.xml";
+    static final String YARN_SITE_XML = "yarn-site.xml";
+
+    public static void main(String[] args) throws Exception {
+        if (args.length != 1) {
+            throw new IllegalArgumentException("Expected one file argument, got: " + Arrays.toString(args));
+        }
+        SchedulerRunner
+                .fromSchedulerBuilder(createSchedulerBuilder(new File(args[0])))
+                .run();
+    }
+
+    private static SchedulerBuilder createSchedulerBuilder(File yamlSpecFile) throws Exception {
+        RawServiceSpec rawServiceSpec = RawServiceSpec.newBuilder(yamlSpecFile).build();
+        File configDir = yamlSpecFile.getParentFile();
+        SchedulerConfig schedulerConfig = SchedulerConfig.fromEnv();
+        DefaultServiceSpec serviceSpec = DefaultServiceSpec.newGenerator(rawServiceSpec, schedulerConfig, configDir)
+                // Used by 'zkfc' and 'zkfc-format' tasks within this pod:
+                .setPodEnv("name", SERVICE_ZK_ROOT_TASKENV, CuratorUtils.getServiceRootPath(rawServiceSpec.getName()))
+                .setAllPodsEnv(DECODED_AUTH_TO_LOCAL,
+                                getHDFSUserAuthMappings(System.getenv(), TASKCFG_ALL_AUTH_TO_LOCAL))
+                .build();
+
+        return DefaultScheduler.newBuilder(setPlacementRules(serviceSpec), schedulerConfig)
+                .setRecoveryManagerFactory(new HdfsRecoveryPlanOverriderFactory())
+                .setPlansFrom(rawServiceSpec)
+                .setEndpointProducer(HDFS_SITE_XML, EndpointProducer.constant(
+                        renderTemplate(new File(configDir, HDFS_SITE_XML), serviceSpec.getName())))
+                .setEndpointProducer(CORE_SITE_XML, EndpointProducer.constant(
+                        renderTemplate(new File(configDir, CORE_SITE_XML), serviceSpec.getName())))
+                .setEndpointProducer(YARN_SITE_XML, EndpointProducer.constant(
+                        renderTemplate(new File(configDir, YARN_SITE_XML), serviceSpec.getName())))
+                .setCustomConfigValidators(Arrays.asList(new HDFSZoneValidator()));
+    }
 
   static final String CORE_SITE_XML = "core-site.xml";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   private static final String JOURNAL_POD_TYPE = "journal";
+    private static ServiceSpec setPlacementRules(DefaultServiceSpec serviceSpec) throws Exception {
+        PodSpec journal = getJournalPodSpec(serviceSpec);
+        PodSpec name = getNamePodSpec(serviceSpec);
+        PodSpec data = getDataPodSpec(serviceSpec);
+        PodSpec yarn = getYarnPodSpec(serviceSpec);
+
+        return DefaultServiceSpec.newBuilder(serviceSpec)
+                .pods(Arrays.asList(journal, name, data, yarn))
+                .build();
+    }
 
   private static final String NAME_POD_TYPE = "name";
 
@@ -93,6 +142,22 @@ public final class Main {
     } else {
       userAuthMapping = "";
     }
+    private static PodSpec getYarnPodSpec(ServiceSpec serviceSpec) {
+        // Yarn nodes avoid themselves.
+        PlacementRule placementRule = new AndRule(
+                TaskTypeRule.avoid(YARN_POD_TYPE),
+                TaskTypeRule.colocateWith(DATA_POD_TYPE)
+        );
+        return getPodPlacementRule(serviceSpec, YARN_POD_TYPE, placementRule);
+    }
+
+    private static PodSpec getPodPlacementRule(ServiceSpec serviceSpec, String podType, PlacementRule placementRule) {
+        if (getPodSpec(serviceSpec, podType).getPlacementRule().isPresent()) {
+            placementRule = new AndRule(
+                    placementRule,
+                    getPodSpec(serviceSpec, podType).getPlacementRule().get()
+            );
+        }
 
     DefaultServiceSpec serviceSpec = DefaultServiceSpec
         .newGenerator(rawServiceSpec, schedulerConfig, configDir)
