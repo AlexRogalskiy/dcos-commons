@@ -45,6 +45,8 @@ public final class Main {
 
   static final String CORE_SITE_XML = "core-site.xml";
 
+  static final String YARN_SITE_XML = "yarn-site.xml";
+
   private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
   private static final String JOURNAL_POD_TYPE = "journal";
@@ -56,6 +58,8 @@ public final class Main {
   private static final int JOURNAL_NODE_COUNT = 3;
 
   private static final int NAME_NODE_COUNT = 2;
+
+  private static final String YARN_POD_TYPE = "yarn";
 
   private Main() {}
 
@@ -130,6 +134,9 @@ public final class Main {
                 )
             )
         )
+        .setEndpointProducer(YARN_SITE_XML, EndpointProducer.constant(
+          renderTemplate(new File(configDir, YARN_SITE_XML),
+          serviceSpec.getName(), schedulerConfig, userAuthMapping)))
         .setCustomConfigValidators(Collections.singletonList(new HDFSZoneValidator()))
         .withSingleRegionConstraint();
   }
@@ -177,10 +184,20 @@ public final class Main {
     PodSpec journal = getJournalPodSpec(serviceSpec);
     PodSpec name = getNamePodSpec(serviceSpec);
     PodSpec data = getDataPodSpec(serviceSpec);
+    PodSpec yarn = getYarnPodSpec(serviceSpec);
 
     return DefaultServiceSpec.newBuilder(serviceSpec)
-        .pods(Arrays.asList(journal, name, data))
+        .pods(Arrays.asList(journal, name, data, yarn))
         .build();
+  }
+
+  private static PodSpec getYarnPodSpec(ServiceSpec serviceSpec) {
+    // Yarn nodes avoid themselves.
+    PlacementRule placementRule = new AndRule(
+        TaskTypeRule.avoid(YARN_POD_TYPE),
+        TaskTypeRule.colocateWith(DATA_POD_TYPE)
+    );
+    return getPodPlacementRule(serviceSpec, YARN_POD_TYPE, placementRule);
   }
 
   private static PodSpec getPodSpec(ServiceSpec serviceSpec, String podName) {
