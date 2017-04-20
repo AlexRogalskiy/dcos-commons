@@ -218,10 +218,122 @@ public final class VolumeEvaluationStage implements OfferEvaluationStage {
     for (String taskName : taskNames) {
       OfferEvaluationUtils.setProtos(podInfoBuilder, resource, Optional.of(taskName));
     }
-    // If it's an executor-level volume, add it to the executor:
-    if (taskNames.isEmpty()) {
-      OfferEvaluationUtils.setProtos(podInfoBuilder, resource, Optional.empty());
-      podInfoBuilder.setExecutorVolume(volumeSpec);
+
+    @Override
+    public EvaluationOutcome evaluate(MesosResourcePool mesosResourcePool, PodInfoBuilder podInfoBuilder) {
+        String detailsClause = resourceId.isPresent() ? "previously reserved " : "";
+
+        List<OfferRecommendation> offerRecommendations = new ArrayList<>();
+        Resource resource;
+        final MesosResource mesosResource;
+
+        boolean isRunningExecutor =
+                OfferEvaluationUtils.isRunningExecutor(podInfoBuilder, mesosResourcePool.getOffer());
+        if (taskName == null && isRunningExecutor && resourceId.isPresent() && persistenceId.isPresent()) {
+            // This is a volume on a running executor, so it isn't present in the offer, but we need to make sure to
+            // add it to the ExecutorInfo.
+            podInfoBuilder.setExecutorVolume(volumeSpec);
+
+            Resource volume = PodInfoBuilder.getExistingExecutorVolume(
+                    volumeSpec,
+                    resourceId,
+                    persistenceId,
+                    sourceRoot,
+                    useDefaultExecutor);
+            podInfoBuilder.getExecutorBuilder().get().addResources(volume);
+
+            return pass(
+                    this,
+                    Collections.emptyList(),
+                    "Setting info for already running Executor with existing volume " +
+                            "with resourceId: '%s' and persistenceId: '%s'",
+                    resourceId,
+                    persistenceId)
+                    .build();
+        }
+
+        if (volumeSpec.getType().equals(VolumeSpec.Type.DOCKER)) {
+            return pass(this, offerRecommendations,
+                    "No resources required for DOCKER volume on '%s'",
+                    mesosResourcePool.getOffer().getHostname())
+                    .build();
+        } else if (volumeSpec.getType().equals(VolumeSpec.Type.ROOT)) {
+            OfferEvaluationUtils.ReserveEvaluationOutcome reserveEvaluationOutcome =
+                    OfferEvaluationUtils.evaluateSimpleResource(
+                            this,
+                            volumeSpec,
+                            resourceId,
+                            mesosResourcePool);
+            EvaluationOutcome evaluationOutcome = reserveEvaluationOutcome.getEvaluationOutcome();
+            if (!evaluationOutcome.isPassing()) {
+                return evaluationOutcome;
+            }
+
+            offerRecommendations.addAll(evaluationOutcome.getOfferRecommendations());
+            mesosResource = evaluationOutcome.getMesosResource().get();
+            resource = ResourceBuilder.fromSpec(
+                    volumeSpec,
+                    reserveEvaluationOutcome.getResourceId(),
+                    persistenceId,
+                    Optional.empty())
+                    .setMesosResource(mesosResource)
+                    .build();
+        } else {
+            Optional<MesosResource> mesosResourceOptional;
+            if (!resourceId.isPresent()) {
+                mesosResourceOptional =
+                        mesosResourcePool.consumeAtomic(Constants.DISK_RESOURCE_TYPE, volumeSpec.getValue());
+            } else {
+                mesosResourceOptional =
+                        mesosResourcePool.getReservedResourceById(resourceId.get());
+            }
+
+            if (!mesosResourceOptional.isPresent()) {
+                return fail(this, "Failed to find MOUNT volume for '%s'.", volumeSpec).build();
+            }
+
+            mesosResource = mesosResourceOptional.get();
+            resource = ResourceBuilder.fromSpec(
+                    volumeSpec,
+                    resourceId,
+                    persistenceId,
+                    Optional.of(mesosResource.getResource().getDisk().getSource().getMount().getRoot()))
+                    .setValue(mesosResource.getValue())
+                    .setMesosResource(mesosResource)
+                    .build();
+
+            if (!resourceId.isPresent()) {
+                // Initial reservation of resources
+                logger.info("    Resource '{}' requires a RESERVE operation", volumeSpec.getName());
+                offerRecommendations.add(new ReserveOfferRecommendation(
+                        mesosResourcePool.getOffer(),
+                        resource));
+            }
+        }
+
+        if (createsVolume()) {
+            logger.info("    Resource '{}' requires a CREATE operation", volumeSpec.getName());
+            offerRecommendations.add(new CreateOfferRecommendation(mesosResourcePool.getOffer(), resource));
+        }
+
+        logger.info("  Generated '{}' resource for task: [{}]",
+                volumeSpec.getName(), TextFormat.shortDebugString(resource));
+        OfferEvaluationUtils.setProtos(podInfoBuilder, resource, getTaskName());
+
+        if (taskName == null && useDefaultExecutor) {
+            podInfoBuilder.setExecutorVolume(volumeSpec);
+        }
+
+        return pass(
+                this,
+                offerRecommendations,
+                "Offer contains sufficient %s'disk': for resource: '%s' with resourceId: '%s' and persistenceId: '%s'",
+                detailsClause,
+                volumeSpec,
+                resourceId,
+                persistenceId)
+                .mesosResource(mesosResource)
+                .build();
     }
 
     if (resourceId.isPresent()) {
