@@ -396,7 +396,7 @@ public class ServiceTest {
 
         // When default executor is being used, one additional resource needs to be unreserved (as configured within
         // ServiceTestRunner).
-        int stepCount = 7;
+        int stepCount = 5;
 
         // Check initial plan state
         ticks.add(new ExpectDecommissionPlanProgress(Arrays.asList(
