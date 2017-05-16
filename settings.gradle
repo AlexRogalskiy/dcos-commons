@@ -20,3 +20,7 @@ project(':sdk/scheduler').name = 'scheduler'
 
 include 'sdk/testing'
 project(':sdk/testing').name = 'testing'
+project(":frameworks/helloworld/tests/tls/keystore").name = 'keystore-app'
+
+include 'frameworks/portworx'
+project(":frameworks/portworx").name = "portworx"
