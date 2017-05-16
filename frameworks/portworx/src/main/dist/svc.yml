@@ -1,7 +1,7 @@
 name: {{FRAMEWORK_NAME}}
 scheduler:
   principal: {{FRAMEWORK_PRINCIPAL}}
-  user: {{FRAMEWORK_USER}}
+  user: {{SERVICE_USER}}
 pods:
   portworx:
     count: {{NODE_COUNT}}
@@ -12,7 +12,7 @@ pods:
     placement: {{NODE_PLACEMENT}}
     tasks:
       install:
-        goal: FINISHED
+        goal: RUNNING
         resource-set: px-resources
         cmd: >
                 echo "[Unit]

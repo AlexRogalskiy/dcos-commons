@@ -20,3 +20,6 @@ project(':sdk/scheduler').name = 'scheduler'
 
 include 'sdk/testing'
 project(':sdk/testing').name = 'testing'
+
+include 'frameworks/portworx'
+project(":frameworks/portworx").name = "portworx"
