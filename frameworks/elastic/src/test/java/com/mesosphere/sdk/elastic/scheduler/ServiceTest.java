@@ -52,7 +52,7 @@ public class ServiceTest {
     ServiceTestResult result = getDefaultRunner()
         .setOptions("service.region", "Europe")
         .run();
-    Assert.assertEquals(result.getSchedulerEnvironment().get("SERVICE_REGION"), "Europe");
+    Assert.assertEquals(result.getSchedulerEnvironment().get("SERVICE_REGION"), null);
   }
 
   private ServiceTestRunner getDefaultRunner() {
