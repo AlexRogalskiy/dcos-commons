@@ -178,7 +178,7 @@ dependencies {
     testCompile "org.apache.curator:curator-test:${curatorVer}"
 }
 
-check.finalizedBy jacocoTestReport
+//check.finalizedBy jacocoTestReport
 jacocoTestReport {
     reports {
         xml.enabled false
