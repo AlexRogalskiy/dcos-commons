@@ -579,17 +579,6 @@ public class PodInfoBuilder {
 
     if (isTaskContainer) {
       containerInfo.getLinuxInfoBuilder().setSharePidNamespace(podSpec.getSharePidNamespace());
-      Map<String, List<String>> addedVolumes = new HashMap<String, List<String>>();
-      if (!podSpec.getTasks().isEmpty()){
-        for (TaskSpec task : podSpec.getTasks()){
-          if (!task.getResourceSet().getVolumes().isEmpty()){
-            addDockerVolumes(containerInfo, task.getResourceSet().getVolumes(), podIndex, addedVolumes);
-          }
-        }
-      }
-      if (!podSpec.getVolumes().isEmpty()){
-        addDockerVolumes(containerInfo, podSpec.getVolumes(), podIndex, addedVolumes);
-      }
 
       // Isolate the tmp directory of tasks
       // switch to SANDBOX SELF after dc/os 1.13
@@ -618,6 +607,19 @@ public class PodInfoBuilder {
 
     for (Protos.Volume hostVolume : hostVolumes) {
       containerInfo.addVolumes(hostVolume);
+    }
+
+    Map<String, List<String>> addedVolumes = new HashMap<String, List<String>>();
+    if (!podSpec.getTasks().isEmpty()) {
+      for (TaskSpec task : podSpec.getTasks()) {
+        if (!task.getResourceSet().getVolumes().isEmpty()) {
+          addDockerVolumes(containerInfo, task.getResourceSet().getVolumes(), podIndex, addedVolumes);
+        }
+      }
+    }
+
+    if (!podSpec.getVolumes().isEmpty()) {
+      addDockerVolumes(containerInfo, podSpec.getVolumes(), podIndex, addedVolumes);
     }
 
     if (!podSpec.getImage().isPresent()
