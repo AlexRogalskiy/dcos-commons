@@ -40,6 +40,7 @@ public class PortEvaluationStage implements OfferEvaluationStage {
 
   private final Logger logger;
 
+<<<<<<< HEAD
   private final PortSpec portSpec;
 
   private final Collection<String> taskNames;
@@ -97,6 +98,43 @@ public class PortEvaluationStage implements OfferEvaluationStage {
               TextFormat.shortDebugString(mesosResourcePool.getOffer()),
               podInfoBuilder.toString())
               .build();
+=======
+        // Update portSpec to reflect the assigned port value (for example, to reflect a dynamic port allocation):
+        Protos.Value.Builder valueBuilder = Protos.Value.newBuilder()
+                .setType(Protos.Value.Type.RANGES);
+        valueBuilder.getRangesBuilder().addRangeBuilder()
+                .setBegin(assignedPort)
+                .setEnd(assignedPort);
+        PortSpec updatedPortSpec = PortSpec.withValue(portSpec, valueBuilder.build());
+
+        if (useHostPorts) {
+            OfferEvaluationUtils.ReserveEvaluationOutcome reserveEvaluationOutcome =
+                    OfferEvaluationUtils.evaluateSimpleResource(this, updatedPortSpec, resourceId, Optional.empty(),
+                            mesosResourcePool);
+            EvaluationOutcome evaluationOutcome = reserveEvaluationOutcome.getEvaluationOutcome();
+            if (!evaluationOutcome.isPassing()) {
+                return evaluationOutcome;
+            }
+
+            Optional<String> resourceIdResult = reserveEvaluationOutcome.getResourceId();
+            setProtos(podInfoBuilder, ResourceBuilder.fromSpec(updatedPortSpec, resourceIdResult).build());
+            return EvaluationOutcome.pass(
+                    this,
+                    evaluationOutcome.getOfferRecommendations(),
+                    "Offer contains required %sport: '%s' with resourceId: '%s'",
+                    resourceId.isPresent() ? "previously reserved " : "",
+                    assignedPort,
+                    resourceId)
+                    .mesosResource(evaluationOutcome.getMesosResource().get())
+                    .build();
+        } else {
+            setProtos(podInfoBuilder, ResourceBuilder.fromSpec(updatedPortSpec, resourceId).build());
+            return EvaluationOutcome.pass(
+                    this,
+                    "Port %s doesn't require resource reservation, ignoring resource requirements and using port %d",
+                    portSpec.getPortName(), assignedPort)
+                    .build();
+>>>>>>> 3633669fc... Update to allow tasks to choose other agents if there are no persistent resources
         }
         assignedPort = dynamicPort.get();
         logger.info("Claiming new dynamic port: {}", assignedPort);

@@ -151,24 +151,21 @@ class TaskResourceMapper {
       return Optional.empty();
     }
 
-    for (ResourceSpec resourceSpec : resourceSpecs) {
-      if (!(resourceSpec instanceof PortSpec)) {
-        continue;
-      }
-      PortSpec portSpec = (PortSpec) resourceSpec;
-      if (portSpec.getPort() == 0) {
-        // For dynamic ports, we need to detect the port value that we had selected.
-        Optional<Long> priorPort = taskPortFinder.getPriorPort(portSpec);
-        if (!priorPort.isPresent()) {
-          //this is a new portSpec and will never match a previously reserved taskResource
-          continue;
-        } else if (RangeUtils.isInAny(ranges.getRangeList(), priorPort.get())) {
-          return Optional.of(new ResourceLabels(
-              resourceSpec,
-              resourceId.get(),
-              ResourceMapperUtils.getNamespaceLabel(
-                  ResourceUtils.getNamespace(taskResource),
-                  resourceNamespace)));
+    private OfferEvaluationStage toEvaluationStage(
+            String taskSpecName,
+            ResourceSpec resourceSpec,
+            Optional<String> resourceId,
+            Optional<String> persistenceId,
+            Optional<String> sourceRoot) {
+        if (resourceSpec instanceof NamedVIPSpec) {
+            return new NamedVIPEvaluationStage((NamedVIPSpec) resourceSpec, taskSpecName, resourceId);
+        } else if (resourceSpec instanceof PortSpec) {
+            return new PortEvaluationStage((PortSpec) resourceSpec, taskSpecName, resourceId);
+        } else if (resourceSpec instanceof VolumeSpec) {
+            return VolumeEvaluationStage.getExisting(
+                    (VolumeSpec) resourceSpec, taskSpecName, resourceId, persistenceId, sourceRoot, useDefaultExecutor);
+        } else {
+            return new ResourceEvaluationStage(resourceSpec, resourceId, persistenceId, taskSpecName);
         }
       } else if (RangeUtils.isInAny(ranges.getRangeList(), portSpec.getPort())) {
         // For fixed ports, we can just check for a resource whose ranges include that port.
