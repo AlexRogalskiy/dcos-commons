@@ -86,7 +86,9 @@ def is_bad_uri(uri, file_name):
         file_name,
         "Export URIs to resource.json to allow packaging for airgapped clusters.",
     )
-
+    # Ignore common local IPs
+    if uri.startswith("localhost") or uri.startswith("127.0.0.1") or uri.startswith("0.0.0.0"):
+        return False
     return True
 
 
