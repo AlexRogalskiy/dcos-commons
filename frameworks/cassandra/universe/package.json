@@ -3,7 +3,7 @@
   "upgradesFrom": ["{{upgrades-from}}"],
   "downgradesTo": ["{{downgrades-to}}"],
   "minDcosReleaseVersion": "1.9",
-  "name": "cassandra-px",
+  "name": "portworx-cassandra",
   "version": "{{package-version}}",
   "maintainer": "support@portworx.com",
   "description": "Apache Cassandra backed by Portworx volumes",

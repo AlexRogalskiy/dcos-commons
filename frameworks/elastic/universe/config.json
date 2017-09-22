@@ -8,8 +8,7 @@
         "name": {
           "description": "Unique name for the Elasticsearch service instance consisting of a series of words separated by slashes. Each word must be at least 1 alphanumeric character and may only contain digits (`0-9`), dashes (`-`), dots (`.`), and lowercase letters (`a-z`). The word may not begin or end with a dash",
           "type": "string",
-          "pattern": "^(\\/?((\\.\\.)|(([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9])\\.)*([a-z0-9]|[a-z0-9][a-z0-9\\-]*[a-z0-9]))?($|\\/))+$",
-          "default": "elastic"
+          "default": "portworx-elastic"
         },
         "user": {
           "description": "The user that runs the Elasticsearch services and owns the Mesos sandbox.",
