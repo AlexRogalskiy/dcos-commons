@@ -8,7 +8,7 @@
         "name": {
           "description": "Unique name for the Cassandra service instance consisting of a series of words separated by slashes. Each word must be at least 1 alphanumeric character and may only contain digits (`0-9`), dashes (`-`), dots (`.`), and lowercase letters (`a-z`). The word may not begin or end with a dash",
           "type": "string",
-          "default": "cassandra-px"
+          "default": "portworx-cassandra"
         },
         "user": {
           "description": "The user that runs the Cassandra nodes and owns the Mesos sandbox.",
