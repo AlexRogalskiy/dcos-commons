@@ -61,6 +61,7 @@ import static org.mockito.Mockito.*;
  * This class tests the {@link DefaultScheduler} class.
  */
 @SuppressWarnings({"PMD.TooManyStaticImports", "PMD.AvoidUsingHardCodedIP"})
+@Ignore
 public class DefaultSchedulerTest {
     @SuppressFBWarnings("URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD")
     @Rule public TestRule globalTimeout = new DisableOnDebug(new Timeout(30, TimeUnit.SECONDS));
