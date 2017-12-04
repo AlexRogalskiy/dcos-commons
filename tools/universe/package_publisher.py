@@ -32,7 +32,7 @@ class UniversePackagePublisher(object):
         self._dry_run = dry_run
 
         # Optional configuration via envvars:
-        self._release_branch = os.environ.get("RELEASE_BRANCH", 'version-3.x-px')
+        self._release_branch = os.environ.get("RELEASE_BRANCH", 'version-3.x')
         self._release_index = int(os.environ.get("RELEASE_INDEX", -1))
         self._github_user = os.environ.get("GITHUB_USER", "mesosphere-ci")
         self._github_token = os.environ.get("GITHUB_TOKEN", None)
@@ -113,8 +113,6 @@ class UniversePackagePublisher(object):
                         self._release_universe_repo,
                     ),
                     "cd universe",
-                    "git config --local user.email jenkins@mesosphere.com",
-                    "git config --local user.name release_builder.py",
                     "git checkout -b {}".format(branch),
                 ]
             )
