@@ -12,6 +12,12 @@ project(':frameworks/hdfs').name = 'hdfs'
 include 'frameworks/helloworld'
 project(':frameworks/helloworld').name = 'helloworld'
 
+include 'frameworks/portworx'
+project(":frameworks/portworx").name = "portworx"
+
+include 'frameworks/zookeeper'
+project(":frameworks/zookeeper").name = "zookeeper"
+
 include 'frameworks/helloworld/tests/tls/keystore'
 project(':frameworks/helloworld/tests/tls/keystore').name = 'keystore-app'
 
@@ -20,6 +26,3 @@ project(':sdk/scheduler').name = 'scheduler'
 
 include 'sdk/testing'
 project(':sdk/testing').name = 'testing'
-
-include 'frameworks/portworx'
-project(":frameworks/portworx").name = "portworx"
