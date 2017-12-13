@@ -27,3 +27,6 @@ project(":frameworks/portworx").name = "portworx"
 
 include 'frameworks/zookeeper'
 project(":frameworks/zookeeper").name = "zookeeper"
+
+include 'frameworks/couchdb'
+project(":frameworks/couchdb").name = "couchdb"
