@@ -37,6 +37,8 @@ public final class Main {
     RawServiceSpec rawServiceSpec = RawServiceSpec.newBuilder(yamlSpecFile).build();
     String node = "node";
     String etcdFlag = "ETCD_ENABLED";
+    String lighthouse = "lighthouse";
+    String state = "start";
     SchedulerBuilder schedulerBuilder = DefaultScheduler.newBuilder(
         DefaultServiceSpec.newGenerator(rawServiceSpec,
         schedulerConfig, yamlSpecFile.getParentFile()).build(),
@@ -44,7 +46,8 @@ public final class Main {
         .setCustomConfigValidators(Arrays.asList(
             new TaskEnvCannotChange("etcd-cluster", node, etcdFlag),
             new TaskEnvCannotChange("etcd-proxy", node, etcdFlag),
-            new TaskEnvCannotChange("lighthouse", "start", "LIGHTHOUSE_ENABLED")))
+            new TaskEnvCannotChange(lighthouse, state, "LIGHTHOUSE_ENABLED"),
+            new TaskEnvCannotChange(lighthouse, state, "LIGHTHOUSE_ADMIN_USER")))
         .setPlansFrom(rawServiceSpec);
 
     schedulerBuilder.setCustomResources(getResources(schedulerBuilder.getServiceSpec()));
