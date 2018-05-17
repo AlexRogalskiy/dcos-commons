@@ -5,8 +5,12 @@ import com.mesosphere.sdk.offer.LoggingUtils;
 import com.mesosphere.sdk.specification.PodSpec;
 import com.mesosphere.sdk.specification.ResourceSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
+<<<<<<< HEAD
 
 import com.google.protobuf.TextFormat;
+=======
+import com.mesosphere.sdk.specification.DockerVolumeSpec;
+>>>>>>> 4374fab47... Enable default executor
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 
