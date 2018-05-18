@@ -127,6 +127,7 @@ Source URL:      {}
 Package name:    {}
 Package version: {}
 Artifact output: {}
+<<<<<<< HEAD
 Upgrades from:   {}
 ###""".format(
                 self._stub_universe_url,
@@ -136,6 +137,12 @@ Upgrades from:   {}
                 self._upgrades_from,
             )
         )
+=======
+###'''.format(self._stub_universe_url,
+              self._pkg_name,
+              self._pkg_version,
+              self._http_directory_url))
+>>>>>>> ae5a67626... Fixing the release builder script
 
     def _run_cmd(self, cmd, exit_on_fail=True, dry_run_return=0):
         if self._dry_run:
