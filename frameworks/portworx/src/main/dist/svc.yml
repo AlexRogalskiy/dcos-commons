@@ -236,9 +236,6 @@ pods:
           http:
             port: {{LIGHTHOUSE_HTTP_PORT}}
             advertise: true
-          https:
-            port: {{LIGHTHOUSE_HTTPS_PORT}}
-            advertise: true
         volume:
           path: "lh-data"
           type: ROOT
@@ -251,8 +248,6 @@ pods:
             if [ ! -f $MESOS_SANDBOX/lh-data/config.yaml ]; then
               echo "ADMIN_USER: {{LIGHTHOUSE_ADMIN_USER}}
             ADMIN_PASSWORD: \$2y\$10\$HeU6ErdL9KL0oLixfBSFausJ0P9FoYPYsRab7FxhJ.AcZGUzkRp3O
-            servercert: '{{LIGHTHOUSE_SERVER_CERT}}'
-            serverkey: '{{LIGHTHOUSE_SERVER_KEY}}'
             company:
               name: {{LIGHTHOUSE_COMPANY_NAME}}
               id: '1'
@@ -268,7 +263,7 @@ pods:
                 cert: ''"> $MESOS_SANDBOX/lh-data/config.yaml
             fi
 
-            LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu /entry-point.sh -confpath $MESOS_SANDBOX/lh-data -http_port {{LIGHTHOUSE_HTTP_PORT}} -https_port {{LIGHTHOUSE_HTTPS_PORT}}
+            LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu /entry-point.sh -confpath $MESOS_SANDBOX/lh-data -http_port {{LIGHTHOUSE_HTTP_PORT}}
         readiness-check:
           cmd: |
             status_code=$(LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu curl -s -o /dev/null -I -w %{http_code} http://$TASK_NAME.$FRAMEWORK_HOST:{{LIGHTHOUSE_HTTP_PORT}}/login)
