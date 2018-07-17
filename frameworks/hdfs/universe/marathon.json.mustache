@@ -59,6 +59,7 @@
     "DATA_DISK": "{{data_node.disk}}",
     "DATA_DISK_DOCKER_VOLUME_NAME": "{{{data_node.portworx_volume_name}}}",
     "DATA_DISK_DOCKER_DRIVER_OPTIONS": "{{{data_node.portworx_volume_options}}}",
+    "YARN_ENABLED": "{{yarn_node.enabled}}",
     "YARN_CPUS": "{{yarn_node.cpus}}",
     "YARN_MEM": "{{yarn_node.mem}}",
     "LIBMESOS_URI": "{{resource.assets.uris.libmesos-bundle-tar-gz}}",
@@ -68,7 +69,8 @@
     "BOOTSTRAP_URI": "{{resource.assets.uris.bootstrap-zip}}",
     "JAVA_URI": "{{resource.assets.uris.jre-tar-gz}}",
     "ZONE_RESOLVER": "{{resource.assets.uris.zone-resolver-sh}}",
-
+    "SKIP_FORMAT": "{{service.skip_format}}",
+    
     {{#service.region}}
     "SERVICE_REGION": "{{service.region}}",
     {{/service.region}}
