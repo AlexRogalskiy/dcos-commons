@@ -25,6 +25,7 @@ def configure_package(configure_security: None) -> Iterator[None]:
 @pytest.mark.dcos_min_version("1.11")
 @sdk_utils.dcos_ee_only
 @pytest.mark.sanity
+@pytest.mark.rack
 def test_rack() -> None:
     sdk_install.install(
         config.PACKAGE_NAME,
