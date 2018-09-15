@@ -15,8 +15,8 @@ import sdk_utils
 
 log = logging.getLogger(__name__)
 
-PACKAGE_NAME = "elastic"
-SERVICE_NAME = "elastic"
+PACKAGE_NAME = 'portworx-elastic'
+SERVICE_NAME = 'portworx-elastic'
 
 DEFAULT_ELASTICSEARCH_USER = "elastic"
 DEFAULT_ELASTICSEARCH_PASSWORD = "changeme"
