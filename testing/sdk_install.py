@@ -18,6 +18,7 @@ import sdk_marathon
 import sdk_plan
 import sdk_tasks
 import sdk_utils
+from dcos import (marathon, mesos)
 
 log = logging.getLogger(__name__)
 
@@ -330,7 +331,17 @@ def uninstall(package_name: str, service_name: str) -> None:
     """
     start = time.time()
 
-    log.info("Uninstalling {}".format(service_name))
+#Portworx specific cleanups are done here. 
+def _portworx_cleanup():
+    client = mesos.DCOSClient()
+    agents = client.get_state_summary()['slaves']
+    #The cassandra tests only unmount and detach the portworx volumes created during tests
+    #Find the cassandra tests specific portworx volumes and delete those.
+    log.info("PORTWORX: cleanup cassandra volumes")
+    exit_status, _ = shakedown.run_command_on_agent(agents[0]['hostname'],
+        'for vol in `pxctl v l | grep Cassandra | cut -f 2`; do pxctl v d -f $vol; done', 'vagrant','/ssh/key')
+    if exit_status:
+        log.info("PORTWORX: Failed to cleanup cassandra volumes")
 
     # Display current SDK Plan before uninstall, helps with debugging stuck uninstalls
     log.info("Current plan status for {}".format(service_name))
@@ -373,4 +384,92 @@ def uninstall(package_name: str, service_name: str) -> None:
     try:
         _installed_service_names.remove(service_name)
     except KeyError:
-        pass  # Expected when tests preemptively uninstall at start of test
+        pass # allow tests to 'uninstall' up-front
+
+    if sdk_utils.dcos_version_less_than('1.10'):
+        log.info('Uninstalling/janitoring {}'.format(service_name))
+        try:
+            shakedown.uninstall_package_and_wait(
+                package_name, service_name=service_name)
+        except (dcos.errors.DCOSException, ValueError) as e:
+            log.info('Got exception when uninstalling package, ' +
+                          'continuing with janitor anyway: {}'.format(e))
+            if 'marathon' in str(e):
+                log.info('Detected a probable marathon flake. Raising so retry will trigger.')
+                raise
+
+        janitor_start = time.time()
+
+        # leading slash removed, other slashes converted to double underscores:
+        deslashed_service_name = service_name.lstrip('/').replace('/', '__')
+        if role is None:
+            role = deslashed_service_name + '-role'
+        if service_account is None:
+            service_account = service_name + '-principal'
+        if zk is None:
+            zk = 'dcos-service-' + deslashed_service_name
+        janitor_cmd = ('docker run mesosphere/janitor /janitor.py '
+                       '-r {role} -p {service_account} -z {zk} --auth_token={auth}')
+        shakedown.run_command_on_master(
+            janitor_cmd.format(
+                role=role,
+                service_account=service_account,
+                zk=zk,
+                auth=sdk_cmd.run_cli('config show core.dcos_acs_token', print_output=False).strip()))
+
+        finish = time.time()
+
+        log.info(
+            'Uninstall done after pkg({}) + janitor({}) = total({})'.format(
+                shakedown.pretty_duration(janitor_start - start),
+                shakedown.pretty_duration(finish - janitor_start),
+                shakedown.pretty_duration(finish - start)))
+    else:
+        log.info('Uninstalling {}'.format(service_name))
+        try:
+            shakedown.uninstall_package_and_wait(
+                package_name, service_name=service_name)
+            # service_name may already contain a leading slash:
+            marathon_app_id = '/' + service_name.lstrip('/')
+            log.info('Waiting for no deployments for {}'.format(marathon_app_id))
+            shakedown.deployment_wait(TIMEOUT_SECONDS, marathon_app_id)
+
+            # wait for service to be gone according to marathon
+            client = shakedown.marathon.create_client()
+            def marathon_dropped_service():
+                app_ids = [app['id'] for app in client.get_apps()]
+                log.info('Marathon apps: {}'.format(app_ids))
+                matching_app_ids = [
+                    app_id for app_id in app_ids if app_id == marathon_app_id
+                ]
+                if len(matching_app_ids) > 1:
+                    log.warning('Found multiple apps with id {}'.format(
+                        marathon_app_id))
+                return len(matching_app_ids) == 0
+            log.info('Waiting for no {} Marathon app'.format(marathon_app_id))
+            shakedown.time_wait(marathon_dropped_service, timeout_seconds=TIMEOUT_SECONDS)
+
+        except (dcos.errors.DCOSException, ValueError) as e:
+            log.info(
+                'Got exception when uninstalling package: {}'.format(e))
+            if 'marathon' in str(e):
+                log.info('Detected a probable marathon flake. Raising so retry will trigger.')
+                raise
+        finally:
+            sdk_utils.list_reserved_resources()
+    #Call portworks specific cleanup routine at the end.
+    _portworx_cleanup()
+
+def merge_dictionaries(dict1, dict2):
+    if (not isinstance(dict2, dict)):
+        return dict1
+    ret = {}
+    for k, v in dict1.items():
+        ret[k] = v
+    for k, v in dict2.items():
+        if (k in dict1 and isinstance(dict1[k], dict)
+                and isinstance(dict2[k], collections.Mapping)):
+            ret[k] = merge_dictionaries(dict1[k], dict2[k])
+        else:
+            ret[k] = dict2[k]
+    return ret
