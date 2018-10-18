@@ -342,12 +342,18 @@ def _portworx_cleanup():
     log.info("PORTWORX: cleanup portworx volumes")
     exit_status, output_agent = shakedown.run_command_on_agent(agents[0]['hostname'],
         'pxctl -j v l', 'vagrant','/ssh/key')
+    if exit_status != True:
+        log.info("PORTWORX: Failed to to collect px-volume list {}".format(output_agent))
+        return
+    
     pxvols = json.loads(output_agent)
     sleep(5) # Extra time after detach volumes before deleting. 
     for vol in pxvols:
         log.info("Deleting Portworx Volume: {}".format(vol['locator']['name']))
         cmd = 'pxctl v d -f ' + vol['locator']['name'] 
         exit_status, output_agent = shakedown.run_command_on_agent(agents[0]['hostname'], cmd, 'vagrant','/ssh/key')	
+        if exit_status != True:
+            log.info("PORTWORX: Failed to delete px-volume {} {}".format(vol['locator']['name'], output_agent))
 
     # Display current SDK Plan before uninstall, helps with debugging stuck uninstalls
     log.info("Current plan status for {}".format(service_name))
