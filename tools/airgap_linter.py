@@ -72,6 +72,9 @@ def is_bad_uri(uri, file_name):
         "{{SCHEDULER_API_HOSTNAME}}",
         "${SCHEDULER_API_HOSTNAME}",
         "$SCHEDULER_API_HOSTNAME",
+        "{{FRAMEWORK_VIP_HOST}}",
+        "$FRAMEWORK_VIP_HOST",
+        "${FRAMEWORK_VIP_HOST}"
     ]
 
     # Are any of the exceptions present?
