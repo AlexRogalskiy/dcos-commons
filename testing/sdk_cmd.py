@@ -236,6 +236,9 @@ def _run_cmd(
 
     return result.returncode, stdout, stderr
 
+# Added simple function to run OS system command
+def run_system_cmd(cmd):
+    return os.system(cmd)
 
 @retrying.retry(
     stop_max_attempt_number=3, wait_fixed=1000, retry_on_result=lambda result: not result
