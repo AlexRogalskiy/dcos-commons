@@ -196,6 +196,10 @@ case $key in
     aws_profile="$2"
     shift
     ;;
+    --kvdb)
+    KVDB_ARGS="$2"
+    shift
+    ;;
     -*)
     echo "Unknown option: $key"
     usage
@@ -391,4 +395,25 @@ while read line; do
 done <$envfile
 echo "==="
 
-$CMD
+docker run --rm \
+    -v ${aws_credentials_file}:/root/.aws/credentials:ro \
+    -e AWS_PROFILE="${aws_profile}" \
+    -e DCOS_ENTERPRISE="$enterprise" \
+    -e DCOS_LOGIN_USERNAME="$DCOS_LOGIN_USERNAME" \
+    -e DCOS_LOGIN_PASSWORD="$DCOS_LOGIN_PASSWORD" \
+    -e CLUSTER_URL="$CLUSTER_URL" \
+    -e S3_BUCKET="$S3_BUCKET" \
+    $azure_args \
+    -e SECURITY="$security" \
+    -e PYTEST_ARGS="$PYTEST_ARGS" \
+    -e KVDB="$KVDB_ARGS" \
+    $FRAMEWORK_ARGS \
+    -e STUB_UNIVERSE_URL="$STUB_UNIVERSE_URL" \
+    -v $(pwd):$WORK_DIR \
+    -v $ssh_path:/ssh/key \
+    -w $WORK_DIR \
+    -t \
+    $DOCKER_INTERACTIVE_FLAGS \
+    $DOCKER_ARGS \
+    mesosphere/dcos-commons:latest \
+    $DOCKER_COMMAND
