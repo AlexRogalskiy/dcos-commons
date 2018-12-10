@@ -334,7 +334,7 @@ def uninstall(package_name: str, service_name: str) -> None:
     start = time.time()
 
 # Portworx volume specific cleanups are done here. 
-def _portworx_volcleanup():
+def portworx_vol_cleanup():
     client = mesos.DCOSClient()
     agents = client.get_state_summary()['slaves']
     exit_status = True
@@ -374,7 +374,7 @@ def portworx_cleanup():
         log.info("PORTWORX: i==> {} Agent hostname: {}".format(i,  agents[i]['hostname']))
         # Skipping exit status checks
         cmd = 'sudo systemctl stop portworx'
-        exit_status, output_agent = shakedown.run_command_on_agent('192.168.65.131', cmd, 'vagrant','/ssh/key')
+        exit_status, output_agent = shakedown.run_command_on_agent(agents[i]['hostname'], cmd, 'vagrant','/ssh/key')
         cmd = 'sudo docker rm portworx.service -f'
         exit_status, output_agent = shakedown.run_command_on_agent(agents[i]['hostname'], cmd, 'vagrant','/ssh/key')
         cmd = 'sudo rm -f /etc/systemd/system/portworx.service'
