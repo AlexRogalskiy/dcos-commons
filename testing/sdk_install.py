@@ -515,7 +515,7 @@ def portworx_cleanup():
         finally:
             sdk_utils.list_reserved_resources()
     # Call portworx specific cleanup routine at the end.
-    _portworx_volcleanup()
+    portworx_vol_cleanup()
 
 def merge_dictionaries(dict1, dict2):
     if (not isinstance(dict2, dict)):
