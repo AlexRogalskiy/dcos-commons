@@ -80,7 +80,9 @@ def test_replace_and_move_pod():
     
     # Verify px status on new node 
     px_status = px_utils.check_px_status() 
-    assert px_status == 2, "PORTWORX: Failed replace and move pod, status returned: {}".format(px_status)
+    if 2 != px_status:
+        log.info("PORTWORX: Failed service stop start px status returned: {}".format(px_status))
+        raise
 
 # Verify suspend and resume portworx service
 @pytest.mark.sanity
