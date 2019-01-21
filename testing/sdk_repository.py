@@ -11,7 +11,7 @@ import os
 import retrying
 import traceback
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple
-
+from time import sleep
 import sdk_cmd
 import sdk_utils
 
@@ -92,18 +92,42 @@ def add_stub_universe_urls(stub_universe_urls: List[str]) -> Dict[str, str]:
         return stub_urls
 
     # clean up any duplicate repositories
-    _, current_universes, _ = sdk_cmd.run_cli("package repo list --json")
-    for repo in json.loads(current_universes)["repositories"]:
-        if repo["uri"] in stub_universe_urls:
-            log.info("Removing duplicate stub URL: {}".format(repo["uri"]))
-            assert remove_repo(repo["name"])
+    count = 5
+    while count > 0:
+        current_universes = sdk_cmd.run_cli('package repo list --json')
+        try:
+            json.loads(current_universes)
+        except ValueError:
+            sleep(5)
+            count = count - 1
+            continue
+        break
+
+    for repo in json.loads(current_universes)['repositories']:
+        if repo['uri'] in stub_urls.values():
+            log.info('Removing duplicate stub URL: {}'.format(repo['uri']))
+            sdk_cmd.run_cli('package repo remove {}'.format(repo['name']))
 
     # add the needed universe repositories
-    log.info("Adding stub URLs: {}".format(stub_universe_urls))
-    for url in stub_universe_urls:
-        name = "testpkg-{}".format(sdk_utils.random_string())
-        stub_urls[name] = url
-        assert add_repo(name, url, 0)
+    for name, url in stub_urls.items():
+        log.info('Adding stub repo {} URL: {}'.format(name, url))
+
+        count = 5
+        while count > 0:
+            rc, stdout, stderr = sdk_cmd.run_raw_cli('package repo add --index=0 {} {}'.format(name, url))
+            if rc != 0 or stderr:
+                count = count - 1
+                log.info('retrying adding stub repo {} URL: {}'.format(name, url))
+                continue
+            else:
+                break
+
+        if rc != 0 or stderr:
+            raise Exception(
+                'Failed to add stub repo {} ({}): stdout=[{}], stderr=[{}]'.format(
+                    name, url, stdout, stderr))
+
+    log.info('Finished adding universe repos')
 
     return stub_urls
 
