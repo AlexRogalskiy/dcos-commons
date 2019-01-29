@@ -4,6 +4,7 @@
       "jre-tar-gz": "{{jre-url}}",
       "libmesos-bundle-tar-gz": "{{libmesos-bundle-url}}",
       "bootstrap-zip": "{{artifact-dir}}/bootstrap.zip",
+      "executor-zip": "{{artifact-dir}}/executor.zip",
       "scheduler-zip": "{{artifact-dir}}/elastic-scheduler.zip",
       "statsd-plugin-zip": "https://downloads.mesosphere.com/elastic/assets/elasticsearch-statsd-{{elastic-statsd-version}}.zip",
       "elasticsearch-jre-tar-gz": "{{jre-url}}",

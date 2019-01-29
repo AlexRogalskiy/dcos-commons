@@ -21,6 +21,12 @@ pytestmark = [
     ),
 ]
 
+pytestmark = [
+    sdk_utils.dcos_ee_only,
+    pytest.mark.skipif(
+        sdk_utils.dcos_version_less_than("1.10"), reason="TLS tests require DC/OS 1.10+"
+    ),
+]
 
 @pytest.fixture(scope="module")
 def service_account(configure_security: None) -> Iterator[Dict[str, Any]]:

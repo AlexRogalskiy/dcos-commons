@@ -42,6 +42,11 @@
           "type": "boolean",
           "default": false
         },
+        "elasticsearch_xpack_security_enabled": {
+          "description": "Set it to true when Elasticsearch X-Pack security is enabled. Defaults to false",
+          "type": "boolean",
+          "default": false
+        },
         "user": {
           "description": "Kibana username to use for X-Pack authentication, if enabled",
           "type": "string",

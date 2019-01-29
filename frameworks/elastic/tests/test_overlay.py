@@ -41,7 +41,6 @@ def default_populated_index() -> None:
         {"name": "Loren", "role": "developer"},
     )
 
-
 @pytest.mark.sanity
 @pytest.mark.overlay
 @pytest.mark.dcos_min_version("1.9")
