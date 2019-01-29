@@ -11,12 +11,12 @@ if [ -n "$ELASTICSEARCH_PLUGINS" ]; then
 fi
 
 if [ -n "$STATSD_UDP_HOST" ]; then
-  STATSD_PLUGIN="file://$MESOS_SANDBOX/elasticsearch-statsd-$ELASTIC_STATSD_VERSION.zip"
-  if [ -n "$PLUGINS" ]; then
-    PLUGINS="$PLUGINS$IFS$STATSD_PLUGIN"
-  else
-    PLUGINS="$STATSD_PLUGIN"
-  fi
+    STATSD_PLUGIN="file://$MESOS_SANDBOX/elasticsearch-statsd-$ELASTIC_STATSD_VERSION.zip"
+    if [ -n "$PLUGINS" ]; then
+        PLUGINS="$PLUGINS$IFS$STATSD_PLUGIN"
+    else
+        PLUGINS="$STATSD_PLUGIN"
+    fi
 fi
 
 for PLUGIN in ${PLUGINS}; do

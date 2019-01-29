@@ -6,6 +6,7 @@ import sdk_fault_domain
 import sdk_install
 import sdk_utils
 from tests import config
+from toolz import get_in
 
 log = logging.getLogger(__name__)
 
@@ -44,11 +45,12 @@ def test_zones_referenced_in_placement_constraints() -> None:
             "master_nodes": {"placement": '[["@zone", "GROUP_BY"]]'},
             "data_nodes": {"placement": '[["@zone", "GROUP_BY"]]'},
             "ingest_nodes": {"placement": '[["@zone", "GROUP_BY"]]'},
-            "coordinator_nodes": {"placement": '[["@zone", "GROUP_BY"]]'},
+            "coordinator_nodes": {"placement": '[["@zone", "GROUP_BY"]]'}, 
         },
-    )
+        )
 
-    nodes_info = config.get_elasticsearch_nodes_info(service_name=config.SERVICE_NAME)
+    nodes_info = config.get_elasticsearch_nodes_info(
+        service_name=config.SERVICE_NAME)
 
     for node_uid, node in nodes_info["nodes"].items():
         assert "zone" == get_in(
@@ -62,7 +64,7 @@ def test_zones_referenced_in_placement_constraints() -> None:
 @pytest.mark.sanity
 @pytest.mark.dcos_min_version("1.11")
 @sdk_utils.dcos_ee_only
-def test_heterogeneus_zone_constraints() -> None:
+def test_heterogeneus_zone_constraints():
     sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
     sdk_install.install(
         config.PACKAGE_NAME,
@@ -86,3 +88,4 @@ def test_heterogeneus_zone_constraints() -> None:
     config.verify_document(config.SERVICE_NAME, document_id, document_fields)
 
     sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
+
