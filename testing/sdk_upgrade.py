@@ -17,6 +17,7 @@ import sdk_plan
 import sdk_repository
 import sdk_tasks
 import sdk_utils
+from time import sleep
 
 log = logging.getLogger(__name__)
 
@@ -155,7 +156,30 @@ def update_or_upgrade_or_downgrade(
             wait_for_deployment=wait_for_deployment,
         )
     else:
+<<<<<<< HEAD
         _update_service_with_cli(package_name, service_name, to_version, to_options)
+=======
+        log.info('Using CLI upgrade flow to upgrade {} {}'.format(package_name, to_package_version))
+        if additional_options:
+            with tempfile.NamedTemporaryFile() as opts_f:
+                opts_f.write(json.dumps(additional_options).encode('utf-8'))
+                opts_f.flush()  # ensure json content is available for the CLI to read below
+                sdk_cmd.svc_cli(
+                    package_name, service_name,
+                    'update start --package-version={} --options={}'.format(to_package_version, opts_f.name))
+        else:
+            sdk_cmd.svc_cli(
+                package_name, service_name,
+                'update start --package-version={}'.format(to_package_version))
+        # we must manually upgrade the package CLI because it's not done automatically in this flow
+        # (and why should it? that'd imply the package CLI replacing itself via a call to the main CLI...)
+        count = 5
+        while count > 0:
+            sdk_cmd.run_cli(
+                'package install --yes --cli --package-version={} {}'.format(to_package_version, package_name))
+            sleep(5)
+            count = count - 1
+>>>>>>> b8788c1eb... Made changes as per review comments
 
     if wait_for_deployment:
         _wait_for_deployment(package_name, service_name, initial_config, task_ids, timeout_seconds)
@@ -186,6 +210,7 @@ def _update_service_with_cli(
         update_cmd.append("--options={}".format(options_file.name))
         log.info("Will update '%s' with options: %s", service_name, additional_options)
 
+<<<<<<< HEAD
     rc, _, _ = sdk_cmd.svc_cli(package_name, service_name, " ".join(update_cmd))
     if rc != 0:
         # Since `sdk_cmd.svc_cli` should already have output error details, so we just raise an
@@ -218,6 +243,40 @@ def _wait_for_deployment(
     else:
         log.info("Checking that all tasks have restarted")
         sdk_tasks.check_tasks_updated(service_name, "", task_ids)
+=======
+@retrying.retry(
+    wait_fixed=1000,
+    stop_max_delay=10*1000,
+    retry_on_result=lambda result: result is None)
+def _get_pkg_version(package_name):
+    cmd = 'package describe {}'.format(package_name)
+    # Only log stdout/stderr if there's actually an error.
+    count = 10
+    while count > 0:
+        rc, stdout, stderr = sdk_cmd.run_raw_cli(cmd, print_output=False)
+        if rc != 0:
+            log.warning('Failed to run "{}":\nSTDOUT:\n{}\nSTDERR:\n{}'.format(cmd, stdout, stderr))
+            sleep(5)
+            count = count - 1
+            continue
+        else:
+            break
+    if rc != 0:
+        return None
+
+    try:
+        describe = json.loads(stdout)
+        # New location (either 1.10+ or 1.11+):
+        version = describe.get('package', {}).get('version', None)
+        if version is None:
+            # Old location (until 1.9 or until 1.10):
+            version = describe['version']
+        return version
+    except:
+        log.warning('Failed to extract package version from "{}":\nSTDOUT:\n{}\nSTDERR:\n{}'.format(cmd, stdout, stderr))
+        log.warning(traceback.format_exc())
+        return None
+>>>>>>> b8788c1eb... Made changes as per review comments
 
     # this can take a while, default is 15 minutes. for example with HDFS, we can hit the expected
     # total task count via ONCE tasks, without actually completing deployment
