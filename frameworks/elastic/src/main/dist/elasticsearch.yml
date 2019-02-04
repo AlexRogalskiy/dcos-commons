@@ -11,8 +11,8 @@ network.publish_host:
   - _local_
 cluster.name: {{CLUSTER_NAME}}
 node.name: {{TASK_NAME}}
-path.data: "{MESOS_SANDBOX}/container-path/data"
-path.logs: "{MESOS_SANDBOX}/container-path/logs"
+path.data: "{{MESOS_SANDBOX}}/container-path/data"
+path.logs: "{{MESOS_SANDBOX}}/container-path/logs"
 http.port: {{PORT_HTTP}}
 transport.tcp.port: {{PORT_TRANSPORT}}
 bootstrap.memory_lock: false
@@ -40,7 +40,7 @@ node.master: false
 node.data: {{DATA_ENABLED}}
 node.ingest: {{INGEST_ENABLED}}
 
-# https://www.elastic.co/guide/en/elasticsearch/reference/6.3/security-settings.html
+# https://www.elastic.co/guide/en/elasticsearch/reference/5.5/security-settings.html#ssl-tls-settings
 {{#SECURITY_TRANSPORT_ENCRYPTION_ENABLED}}
 xpack.security.enabled: true
 # https://www.elastic.co/guide/en/elasticsearch/reference/6.3/security-settings.html#ssl-tls-settings
