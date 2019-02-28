@@ -56,7 +56,8 @@ pods:
           chmod -R +x scripts
           ./scripts/java-dns-ttl.sh
           ./scripts/install-plugins.sh
-          ./scripts/setup-java-policy.sh
+          ./scripts/setup-java-policy.sh 
+          sudo chown {{FRAMEWORK_USER}} $MESOS_SANDBOX/container-path -R 
           exec ./elasticsearch-{{ELASTIC_VERSION}}/bin/elasticsearch
         env:
           NODE_HEAP_MB: {{MASTER_NODE_HEAP_MB}} 
@@ -236,6 +237,7 @@ pods:
           ./scripts/java-dns-ttl.sh
           ./scripts/install-plugins.sh
           ./scripts/setup-java-policy.sh
+          sudo chown {{FRAMEWORK_USER}} $MESOS_SANDBOX/container-path -R 
           exec ./elasticsearch-{{ELASTIC_VERSION}}/bin/elasticsearch
         env:
           NODE_HEAP_MB: {{INGEST_NODE_HEAP_MB}} 
@@ -324,6 +326,7 @@ pods:
           ./scripts/java-dns-ttl.sh
           ./scripts/install-plugins.sh
           ./scripts/setup-java-policy.sh
+          sudo chown {{FRAMEWORK_USER}} $MESOS_SANDBOX/container-path -R 
           exec ./elasticsearch-{{ELASTIC_VERSION}}/bin/elasticsearch
         env:
           NODE_HEAP_MB: {{COORDINATOR_NODE_HEAP_MB}} 
