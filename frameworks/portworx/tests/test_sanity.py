@@ -29,6 +29,12 @@ def configure_package(configure_security):
     finally:
         return
 
+# Verify portworx version
+@pytest.mark.version
+def test_verify_px_version():
+    px_version = px_utils.get_px_version()
+    log.info("Portworx version returned: {}".format(px_version))
+	
 # Verify portworx installation
 @pytest.mark.sanity
 def test_verify_install():

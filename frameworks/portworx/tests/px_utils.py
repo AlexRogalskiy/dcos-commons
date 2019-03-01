@@ -130,6 +130,11 @@ def check_px_status(do_not_wait = 0):
 
     return int(px_status)
 
+def get_px_version():
+	cmd = "portworx version"
+    _, px_version, std_err = sdk_cmd.run_raw_cli(cmd)
+	return px_version
+	
 def px_service_suspend_resume(pod_name):
     agent_id = px_get_agent_id(pod_name)
     cmd = "node ssh  \"sudo systemctl stop portworx\" --user=" + config.PX_AGENT_USER + " --mesos-id=" + agent_id + " --option StrictHostKeyChecking=no"
