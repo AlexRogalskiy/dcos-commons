@@ -29,13 +29,14 @@
 
     "FRAMEWORK_NAME": "{{service.name}}",
     "FRAMEWORK_USER": "{{service.user}}",
+    "SERVICE_USER": "{{service.user}}",
     "FRAMEWORK_PRINCIPAL": "{{service.service_account}}",
     "FRAMEWORK_LOG_LEVEL": "{{service.log_level}}",
 
     "ZOOKEEPER_VERSION": "3.4.11",
 
     "NODE_COUNT": "{{node.count}}",
-    "NODE_PLACEMENT": "{{node.placement_constraint}}",
+    "NODE_PLACEMENT": "{{{node.placement_constraint}}}",
 
     {{#service.virtual_network_enabled}}
     "ENABLE_VIRTUAL_NETWORK": "yes",
