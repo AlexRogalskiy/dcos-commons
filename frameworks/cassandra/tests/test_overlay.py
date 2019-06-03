@@ -27,13 +27,7 @@ def configure_package(configure_security: None) -> Iterator[None]:
             additional_options=sdk_networks.ENABLE_VIRTUAL_NETWORKS_OPTIONS,
         )
 
-        yield  # let the test session execute
-    finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
-
-        for job in test_jobs:
-            sdk_jobs.remove_job(job)
-
+        yield # let the test session execute
 
 @pytest.mark.sanity
 @pytest.mark.smoke
@@ -54,9 +48,12 @@ def test_functionality() -> None:
 
     # populate 'testspace1' for test, then delete afterwards:
     with sdk_jobs.RunJobContext(
-        before_jobs=[config.get_write_data_job(), config.get_verify_data_job()],
-        after_jobs=[config.get_delete_data_job(), config.get_verify_deletion_job()],
-    ):
+            before_jobs=[
+                config.get_write_data_job(),
+                config.get_verify_data_job()
+            ],
+            after_jobs=[]
+            ):
 
         sdk_plan.start_plan(config.SERVICE_NAME, "cleanup", parameters=parameters)
         sdk_plan.wait_for_completed_plan(config.SERVICE_NAME, "cleanup")
@@ -67,9 +64,20 @@ def test_functionality() -> None:
 
 @pytest.mark.sanity
 @pytest.mark.overlay
-@pytest.mark.dcos_min_version("1.9")
-def test_endpoints() -> None:
-    endpoint_names = sdk_networks.get_endpoint_names(config.PACKAGE_NAME, config.SERVICE_NAME)
-    assert set(endpoint_names) == set(["native-client"])
+@pytest.mark.dcos_min_version('1.9')
+def test_endpoints():
+    # tests that the correct number of endpoints are found, should just be "native-client":
+    endpoints = sdk_networks.get_and_test_endpoints(config.PACKAGE_NAME, config.SERVICE_NAME, "", 1)
+    assert "native-client" in endpoints, "Cassandra endpoints should contain only 'native-client', got {}".format(endpoints)
+    endpoints = sdk_networks.get_and_test_endpoints(config.PACKAGE_NAME, config.SERVICE_NAME, "native-client", 2)
+    sdk_networks.check_endpoints_on_overlay(endpoints)
 
-    sdk_networks.check_endpoint_on_overlay(config.PACKAGE_NAME, config.SERVICE_NAME, "native-client", config.DEFAULT_TASK_COUNT)
+@pytest.mark.sanity
+@pytest.mark.overlay
+def test_overlay_uninstall_pkg():
+    sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
+
+    for job in test_jobs:
+        sdk_jobs.remove_job(job)
+
+

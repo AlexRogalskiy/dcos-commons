@@ -36,23 +36,36 @@ def service_account(configure_security: None) -> Iterator[Dict[str, Any]]:
     """
     Sets up a service account for use with TLS.
     """
-    try:
-        name = config.SERVICE_NAME
-        service_account_info = transport_encryption.setup_service_account(name)
+    # This name should be same as SERVICE_NAME as it determines scheduler DCOS_LABEL value.
+    name = config.SERVICE_NAME
+    sdk_security.create_service_account(
+        service_account_name=name, service_account_secret=name)
+    # TODO(mh): Fine grained permissions needs to be addressed in DCOS-16475
+    sdk_cmd.run_cli(
+        "security org groups add_user superusers {name}".format(name=name))
+    yield name
+    sdk_security.delete_service_account(
+        service_account_name=name, service_account_secret=name)
 
-        yield service_account_info
-    finally:
-        transport_encryption.cleanup_service_account(config.SERVICE_NAME, service_account_info)
 
-
-@pytest.fixture(scope="module")
-def cassandra_service(service_account: Dict[str, Any]) -> Iterator[Dict[str, Any]]:
-    service_options = {
-        "service": {
-            "name": config.SERVICE_NAME,
-            "service_account": service_account["name"],
-            "service_account_secret": service_account["secret"],
-            "security": {"transport_encryption": {"enabled": True}},
+@pytest.fixture(scope='module')
+def cassandra_service_tls(service_account):
+    sdk_install.uninstall(package_name=config.PACKAGE_NAME, service_name=config.SERVICE_NAME)
+    sdk_install.install(
+        config.PACKAGE_NAME,
+        service_account,
+        config.DEFAULT_TASK_COUNT,
+        additional_options={
+            "service": {
+                "service_account_secret": service_account,
+                "service_account": service_account,
+                "virtual_network_enabled": True,
+                "security": {
+                    "transport_encryption": {
+                        "enabled": True
+                    }
+                }
+            }
         }
     }
 

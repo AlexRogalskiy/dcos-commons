@@ -33,16 +33,9 @@ def configure_package(configure_security: None) -> Iterator[None]:
             config.PACKAGE_NAME,
             config.get_foldered_service_name(),
             config.DEFAULT_TASK_COUNT,
-            from_options={"service": {"name": config.get_foldered_service_name()}},
-        )
+            additional_options={"service": {"name": config.get_foldered_service_name(), "virtual_network_enabled": True} })
 
         yield  # let the test session execute
-    finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, config.get_foldered_service_name())
-
-        for job in test_jobs:
-            sdk_jobs.remove_job(job)
-
 
 @pytest.mark.sanity
 def test_endpoints() -> None:
@@ -104,54 +97,12 @@ def test_metrics() -> None:
         expected_metrics_exist,
     )
 
-
+# Uninstall cassandra
 @pytest.mark.sanity
-def test_custom_jmx_port() -> None:
-    expected_open_port = ":7200 (LISTEN)"
+def test_sanity_uninstall_pkg():
+    sdk_install.uninstall(config.PACKAGE_NAME,
+                          config.get_foldered_service_name())
 
-    new_config = {"cassandra": {"jmx_port": 7200}}
+    for job in test_jobs:
+        sdk_jobs.remove_job(job)
 
-    sdk_service.update_configuration(
-        config.PACKAGE_NAME,
-        config.get_foldered_service_name(),
-        new_config,
-        config.DEFAULT_TASK_COUNT,
-    )
-
-    sdk_plan.wait_for_completed_deployment(config.get_foldered_service_name())
-
-    tasks = sdk_tasks.get_service_tasks(config.get_foldered_service_name(), "node")
-
-    for task in tasks:
-        _, stdout, _ = sdk_cmd.run_cli("task exec {} lsof -i :7200".format(task.id))
-        assert expected_open_port in stdout
-
-
-@pytest.mark.sanity
-def test_udf() -> None:
-    test_jobs: List[Dict[str, Any]] = []
-    try:
-        test_jobs = config.get_udf_jobs(node_address=config.get_foldered_node_address())
-        # destroy/reinstall any prior leftover jobs, so that they don't touch the newly installed service:
-        for job in test_jobs:
-            sdk_jobs.install_job(job)
-
-        new_config = {
-            "cassandra": {
-                "enable_user_defined_functions": True,
-                "enable_scripted_user_defined_functions": True,
-            }
-        }
-        sdk_service.update_configuration(
-            config.PACKAGE_NAME,
-            config.get_foldered_service_name(),
-            new_config,
-            config.DEFAULT_TASK_COUNT,
-        )
-        config.verify_client_can_write_read_udf(
-            config.get_foldered_node_address(),
-        )
-    finally:
-        # remove job definitions from metronome
-        for job in test_jobs:
-            sdk_jobs.remove_job(job)

@@ -11,6 +11,7 @@ import sdk_install
 import sdk_marathon
 import sdk_plan
 import sdk_tasks
+import sdk_networks
 from tests import config
 
 RECOVERY_TIMEOUT_SECONDS = 20 * 60
@@ -22,12 +23,12 @@ log = logging.getLogger(__name__)
 def configure_package(configure_security: None) -> Iterator[None]:
     try:
         sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
-        sdk_install.install(config.PACKAGE_NAME, config.SERVICE_NAME, config.DEFAULT_TASK_COUNT)
+        sdk_install.install(config.PACKAGE_NAME, 
+                    config.SERVICE_NAME, 
+                    config.DEFAULT_TASK_COUNT,
+                    additional_options=sdk_networks.ENABLE_VIRTUAL_NETWORKS_OPTIONS)
 
         yield  # let the test session execute
-    finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
-
 
 @pytest.mark.sanity
 @pytest.mark.dcos_min_version("1.9", reason="dcos task exec not supported < 1.9")
@@ -115,12 +116,14 @@ def test_shutdown_host() -> None:
     # Find the new version of the task. Note that the old one may still be present/'running' as
     # Mesos might not have acknowledged the agent's death.
     new_task = [
-        task
-        for task in sdk_tasks.get_summary()
-        if task.name == replace_task.name and task.id != replace_task.id
-    ][0]
-    log.info(
-        "Checking that the original pod has moved to a new agent:\n"
-        "old={}\nnew={}".format(replace_task, new_task)
-    )
-    assert replace_task.agent_id != new_task.agent_id
+        task for task in sdk_tasks.get_summary()
+        if task.name == replace_task.name and task.id != replace_task.id][0]
+    log.info('Checking that the original pod has moved to a new agent:\n'
+             'old={}\nnew={}'.format(replace_task, new_task))
+    assert replace_task.agent != new_task.agent
+
+@pytest.mark.sanity
+def test_zzzrecovery_uninstall_pkg():
+    sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
+
+
