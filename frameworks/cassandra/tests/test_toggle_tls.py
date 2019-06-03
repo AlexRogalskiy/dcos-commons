@@ -48,6 +48,7 @@ def cassandra_service(service_account: Dict[str, Any]) -> Iterator[Dict[str, Any
     options = {
         "service": {
             "name": config.SERVICE_NAME,
+            "virtual_network_enabled": True,
             # Note that since we wish to toggle TLS which *REQUIRES* a service account,
             # we need to install Cassandra with a service account to start with.
             "service_account": service_account["name"],
@@ -196,3 +197,8 @@ def update_service(service: Dict[str, Any], options: Dict[str, Any]) -> None:
         # An update plan is a deploy plan
         sdk_plan.wait_for_kicked_off_deployment(service["service"]["name"])
         sdk_plan.wait_for_completed_deployment(service["service"]["name"])
+
+@pytest.mark.sanity
+def test_toggle_tls_uninstall_pkg():
+    sdk_security.delete_service_account(
+        service_account_name=name, service_account_secret=secret)
