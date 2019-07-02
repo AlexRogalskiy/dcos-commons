@@ -186,16 +186,23 @@ def get_metrics(package_name: str, service_name: str, pod_name: str, task_name: 
         )
         raise Exception("Expected key 'dimensions.task_name' not found in app metrics")
 
-    if app_json["dimensions"]["task_name"] == task_name:
-        return list(app_json["datapoints"])
-
-    raise Exception("No metrics found for task {} in service {}".format(task_name, service_name))
-
-
-def check_metrics_presence(emitted_metrics: List[str], expected_metrics: List[str]) -> bool:
+def check_metrics_presence(emitted_metrics, expected_metrics):
     """Check whether a given list contains all
     """
     lower_case_emitted_metrics = set(map(lambda m: m.lower(), emitted_metrics))
+
+    missing_metrics = []
+    for metric in expected_metrics:
+        if metric.lower() not in lower_case_emitted_metrics:
+            missing_metrics.append(metric)
+
+    if missing_metrics:
+        log.warning("Expected metrics: %s", expected_metrics)
+        log.warning("Emitted metrics: %s", emitted_metrics)
+        log.warning("The following metrics are missing: %s", missing_metrics)
+        return False
+
+    return True
 
     missing_metrics = []
     for metric in expected_metrics:
