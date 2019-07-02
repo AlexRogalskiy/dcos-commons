@@ -171,14 +171,10 @@ def get_metrics(package_name: str, service_name: str, pod_name: str, task_name: 
         )
 
     app_response = sdk_cmd.cluster_request(
-        "GET",
-        "/system/v1/agent/{}/metrics/v0/containers/{}/app".format(
-            task_to_check.agent_id, task_container_id
-        ),
-        retry=False,
-    )
-    app_response.raise_for_status()
-    app_json = app_response.json()
+        "GET", "/system/v1/agent/{}/metrics/v0/containers/{}/app".format(agent_id, task_container_id), retry=False)
+    app_json = json.loads(app_response.text)
+    if app_json['dimensions']['task_name'] == task_name:
+        return app_json['datapoints']
 
     if "dimensions" not in app_json:
         log.error("Expected key '%s' not found in app metrics: %s", "dimensions", app_json)
