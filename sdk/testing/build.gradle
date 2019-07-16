@@ -14,12 +14,11 @@ task mainJar(type: Jar) {
 
 publishing {
     repositories {
-        def pxVersion = getPxVersion()
         maven {
-            if (pxVersion.endsWith('-SNAPSHOT')) {
-                url "s3://" + System.env['S3_RELEASE_BUCKET'] + "/maven-snapshot/"
+            if(project.version.endsWith('-SNAPSHOT')) {
+                url 's3://downloads.mesosphere.io/maven-snapshot/'
             } else {
-                url "s3://" + System.env['S3_RELEASE_BUCKET'] + "/maven/"
+                url 's3://downloads.mesosphere.io/maven/'
             }
             credentials(AwsCredentials) {
                 accessKey System.env['AWS_ACCESS_KEY_ID']
@@ -30,7 +29,8 @@ publishing {
             // Base testing.jar (external deps) + source jar
             mavenJava(MavenPublication) {
                 artifactId 'testing'
-                version pxVersion
+                groupId project.group
+                version project.version
 
                 // Gradle gets confused if we just do 'from components.java', but this works:
                 artifact mainJar

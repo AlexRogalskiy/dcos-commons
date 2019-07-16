@@ -60,6 +60,8 @@ import com.mesosphere.sdk.state.StateStoreUtils;
 import com.mesosphere.sdk.storage.Persister;
 import com.mesosphere.sdk.storage.PersisterCache;
 import com.mesosphere.sdk.storage.PersisterException;
+import com.mesosphere.sdk.specification.*;
+import com.mesosphere.sdk.offer.*;
 
 import com.google.common.annotations.VisibleForTesting;
 import org.slf4j.Logger;

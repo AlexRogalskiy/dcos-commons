@@ -41,6 +41,8 @@ import com.mesosphere.sdk.specification.ServiceSpec;
 import com.mesosphere.sdk.specification.TaskSpec;
 import com.mesosphere.sdk.specification.TransportEncryptionSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
+import com.mesosphere.sdk.specification.*;
+import com.mesosphere.sdk.offer.*;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
@@ -453,49 +455,37 @@ public final class YAMLToInternalMappers {
       discoverySpec = convertDiscovery(rawTask.getDiscovery());
     }
 
-        return builder.build();
+    Collection<TransportEncryptionSpec> transportEncryption = rawTask
+        .getTransportEncryption()
+        .stream()
+        .map(task -> DefaultTransportEncryptionSpec.newBuilder()
+            .name(task.getName())
+            .type(TransportEncryptionSpec.Type.valueOf(task.getType()))
+            .build())
+        .collect(Collectors.toCollection(ArrayList::new));
+
+    String goalString = StringUtils.upperCase(rawTask.getGoal());
+    if (goalString.equals("FINISHED")) {
+      throw new IllegalArgumentException(String.format(
+          "Unsupported GoalState %s in task %s, expected one of: %s",
+          goalString, taskName, Arrays.asList(GoalState.values())));
     }
+    DefaultTaskSpec.Builder builder = DefaultTaskSpec.newBuilder()
+        .commandSpec(commandSpecBuilder.build())
+        .configFiles(configFiles)
+        .discoverySpec(discoverySpec)
+        .goalState(GoalState.valueOf(goalString))
+        .essential(rawTask.isEssential())
+        .healthCheckSpec(healthCheckSpec)
+        .readinessCheckSpec(readinessCheckSpec)
+        .name(taskName)
+        .taskKillGracePeriodSeconds(rawTask.getTaskKillGracePeriodSeconds())
+        .setTransportEncryption(transportEncryption)
+        .name(taskName);
 
-    private static DefaultResourceSet convertResourceSet(
-            String id,
-            Double cpus,
-            Double gpus,
-            Integer memory,
-            WriteOnceLinkedHashMap<String, RawPort> rawPorts,
-            RawVolume rawSingleVolume,
-            WriteOnceLinkedHashMap<String, RawVolume> rawVolumes,
-            String role,
-            String preReservedRole,
-            String principal,
-            Collection<String> networkNames) {
-
-        DefaultResourceSet.Builder resourceSetBuilder = DefaultResourceSet.newBuilder(role, preReservedRole, principal);
-
-        if (rawVolumes != null) {
-            if (rawSingleVolume != null) {
-                throw new IllegalArgumentException(String.format(
-                        "Both 'volume' and 'volumes' may not be specified at the same time: %s", id));
-            }
-            // Note: volume names for multiple volumes are currently ignored
-            for (RawVolume rawVolume : rawVolumes.values()) {
-                resourceSetBuilder.addVolume(
-                        rawVolume.getType(),
-                        rawVolume.getDockerVolumeName(),
-                        rawVolume.getDockerDriverName(),
-                        rawVolume.getDockerDriverOptions(),
-                        Double.valueOf(rawVolume.getSize()),
-                        rawVolume.getPath());
-            }
-        }
-        if (rawSingleVolume != null) {
-            resourceSetBuilder.addVolume(
-                    rawSingleVolume.getType(),
-                    rawSingleVolume.getDockerVolumeName(),
-                    rawSingleVolume.getDockerDriverName(),
-                    rawSingleVolume.getDockerDriverOptions(),
-                    Double.valueOf(rawSingleVolume.getSize()),
-                    rawSingleVolume.getPath());
-        }
+    if (!Strings.isNullOrEmpty(rawTask.getLabelsCsv())) {
+      builder.taskLabels(convertLabels(rawTask.getLabelsCsv()));
+    }
 
     if (StringUtils.isNotBlank(rawTask.getResourceSet())) {
       // Use resource set content:
@@ -548,17 +538,23 @@ public final class YAMLToInternalMappers {
       for (RawVolume rawVolume : rawVolumes.values()) {
         resourceSetBuilder.addVolume(
             rawVolume.getType(),
+            rawVolume.getDockerVolumeName(),
+            rawVolume.getDockerDriverName(),
+            rawVolume.getDockerDriverOptions(),
             Double.valueOf(rawVolume.getSize()),
-            rawVolume.getPath(),
-            rawVolume.getProfiles());
+            rawVolume.getPath());
+            //rawVolume.getProfiles());
       }
     }
     if (rawSingleVolume != null) {
       resourceSetBuilder.addVolume(
           rawSingleVolume.getType(),
+          rawSingleVolume.getDockerVolumeName(),
+          rawSingleVolume.getDockerDriverName(),
+          rawSingleVolume.getDockerDriverOptions(),
           Double.valueOf(rawSingleVolume.getSize()),
-          rawSingleVolume.getPath(),
-          rawSingleVolume.getProfiles());
+          rawSingleVolume.getPath());
+          //rawSingleVolume.getProfiles());
     }
 
     if (cpus != null) {
@@ -605,19 +601,7 @@ public final class YAMLToInternalMappers {
         .build();
   }
 
-  private static DefaultVolumeSpec convertVolume(
-      RawVolume rawVolume, String role, String preReservedRole, String principal)
-  {
-    VolumeSpec.Type volumeTypeEnum;
-    try {
-      volumeTypeEnum = VolumeSpec.Type.valueOf(rawVolume.getType());
-    } catch (Exception e) {
-      throw new IllegalArgumentException(String.format(
-          "Provided volume type '%s' for path '%s' is invalid. Expected type to be one of: %s",
-          rawVolume.getType(), rawVolume.getPath(), Arrays.asList(VolumeSpec.Type.values())));
-    }
-
-    private static VolumeSpec convertVolume(
+  private static VolumeSpec convertVolume(
             RawVolume rawVolume, String role, String preReservedRole, String principal) {
         VolumeSpec.Type volumeTypeEnum;
         try {
@@ -648,6 +632,60 @@ public final class YAMLToInternalMappers {
                     preReservedRole,
                     principal);
         }
+    }
+
+  private static Map<String, String> convertLabels(
+      String rawLabelsCsv) throws IllegalArgumentException
+  {
+    List<String[]> kvs = Arrays.stream(rawLabelsCsv.split(","))
+        .map(s -> s.split(":", 2))
+        .collect(Collectors.toList());
+    kvs.forEach(kv -> {
+      if (kv.length != 2) {
+        throw new IllegalArgumentException(String.format(
+            "Illegal label string, got %s, should be " +
+                "comma-seperated key value pairs (seperated by colons)." +
+                " For example: k_0:v_0,k_1:v_1,...,k_n:v_n",
+            rawLabelsCsv
+        ));
+      }
+    });
+
+    return kvs.stream().collect(Collectors.toMap(s -> s[0], s -> s[1]));
+  }
+
+  private static DefaultNetworkSpec convertNetwork(
+      String networkName,
+      RawNetwork rawNetwork,
+      Collection<Integer> ports) throws IllegalArgumentException
+  {
+    DefaultNetworkSpec.Builder builder = DefaultNetworkSpec.newBuilder().networkName(networkName);
+    boolean supportsPortMapping = DcosConstants.networkSupportsPortMapping(networkName);
+    if (!supportsPortMapping && rawNetwork.numberOfPortMappings() > 0) {
+      throw new IllegalArgumentException(String.format(
+          "Virtual Network %s doesn't support container->host port mapping", networkName));
+    }
+    if (supportsPortMapping) {
+      Map<Integer, Integer> portMap = new HashMap<>();
+      if (rawNetwork.numberOfPortMappings() > 0) {
+        // zip the host and container ports together
+        portMap = IntStream.range(0, rawNetwork.numberOfPortMappings())
+            .boxed().collect(Collectors
+                .toMap(rawNetwork.getHostPorts()::get, rawNetwork.getContainerPorts()::get));
+      }
+      if (ports.size() > 0) {
+        for (Integer port : ports) {
+          // iterate over the task ports and if they aren't being remapped do a 1:1 (host:container) mapping
+          if (!portMap.keySet().contains(port)) {
+            portMap.put(port, port);
+          }
+        }
+      }
+      builder.portMappings(portMap);
+    }
+
+    if (!Strings.isNullOrEmpty(rawNetwork.getLabelsCsv())) {
+      builder.networkLabels(convertLabels(rawNetwork.getLabelsCsv()));
     }
 
     return builder.build();

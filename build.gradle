@@ -97,32 +97,4 @@ allprojects {
             events 'passed', 'skipped', 'failed'
         }
     }
-
-    ext {
-        pxVersion = '1.3.5-SNAPSHOT'
-        getPxVersion = { ->
-            return project.version + '-' + pxVersion
-        }
-    }
-}
-
-ext {
-    mesosVer = '1.4.0-rc1'
-}
-
-subprojects {
-    dependencies {
-        // Double quotes are required for $mesosVer to be resolved:
-        compile "org.apache.mesos:mesos:${mesosVer}"
-    }
-}
-
-shadowJar {
-    classifier = 'uber'
-
-    mergeServiceFiles()
-
-    exclude 'META-INF/*.SF'
-    exclude 'META-INF/*.DSA'
-    exclude 'META-INF/*.RSA'
 }

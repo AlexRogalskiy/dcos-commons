@@ -500,52 +500,11 @@ public class OfferEvaluator {
         }
       }
 
-        String preReservedRole = null;
-        String role = null;
-        String principal = null;
-        boolean shouldAddExecutorResources = useDefaultExecutor;
-        for (Map.Entry<String, ResourceSet> entry : getNewResourceSets(podInstanceRequirement).entrySet()) {
-            String taskName = entry.getKey();
-            List<ResourceSpec> resourceSpecs = getOrderedResourceSpecs(entry.getValue());
-
-            for (ResourceSpec resourceSpec : resourceSpecs) {
-                if (resourceSpec instanceof NamedVIPSpec) {
-                    evaluationStages.add(
-                            new NamedVIPEvaluationStage((NamedVIPSpec) resourceSpec, taskName, Optional.empty()));
-                } else if (resourceSpec instanceof PortSpec) {
-                    evaluationStages.add(new PortEvaluationStage((PortSpec) resourceSpec, taskName, Optional.empty()));
-                } else {
-                    evaluationStages.add(new ResourceEvaluationStage(resourceSpec, Optional.empty(), Optional.empty(),
-                                taskName));
-                }
-
-                if (preReservedRole == null && role == null && principal == null) {
-                    preReservedRole = resourceSpec.getPreReservedRole();
-                    role = resourceSpec.getRole();
-                    principal = resourceSpec.getPrincipal();
-                }
-            }
-
-            for (VolumeSpec volumeSpec : entry.getValue().getVolumes()) {
-                evaluationStages.add(VolumeEvaluationStage.getNew(volumeSpec, taskName, useDefaultExecutor));
-            }
-
-            if (shouldAddExecutorResources) {
-                // The default executor needs a constant amount of resources, account for them here.
-                for (ResourceSpec resourceSpec : getExecutorResources(preReservedRole, role, principal)) {
-                    evaluationStages.add(new ResourceEvaluationStage(resourceSpec, Optional.empty(), Optional.empty(),
-                                null));
-                }
-                shouldAddExecutorResources = false;
-            }
-
-            // TLS evaluation stages should be added for all tasks regardless of the tasks to launch list to ensure
-            // ExecutorInfo equality when launching new tasks
-            for (TaskSpec taskSpec : podInstanceRequirement.getPodInstance().getPod().getTasks()) {
-                if (!taskSpec.getTransportEncryption().isEmpty()) {
-                    evaluationStages.add(tlsStageBuilder.get().build(taskSpec.getName()));
-                }
-            }
+      // Finally, either launch the task, or just update the StateStore with information about the task.
+      boolean shouldBeLaunched = podInstanceRequirement.getTasksToLaunch().contains(taskSpecName);
+      evaluationStages.add(
+          new LaunchEvaluationStage(serviceName, taskSpecName, shouldBeLaunched));
+    }
 
     return evaluationStages;
   }

@@ -7,7 +7,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.mesos.Protos;
 import com.mesosphere.sdk.offer.Constants;
-import com.mesosphere.sdk.specification.validation.ValidationUtils;
+import com.mesosphere.sdk.specification.*;
 
 import java.util.*;
 
@@ -77,7 +77,7 @@ public class DockerVolumeSpec extends DefaultVolumeSpec implements VolumeSpec {
             }
         }
 
-        ValidationUtils.validate(this);
+        //ValidationUtils.validate(this);
     }
 
     @JsonProperty("volume-name")

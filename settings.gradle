@@ -18,10 +18,6 @@ project(':frameworks/helloworld/tests/tls/keystore').name = 'keystore-app'
 include 'sdk/scheduler'
 project(':sdk/scheduler').name = 'scheduler'
 
-include 'sdk/testing'
-project(':sdk/testing').name = 'testing'
-project(":frameworks/helloworld/tests/tls/keystore").name = 'keystore-app'
-
 include 'frameworks/portworx'
 project(":frameworks/portworx").name = "portworx"
 
@@ -30,3 +26,6 @@ project(":frameworks/zookeeper").name = "zookeeper"
 
 include 'frameworks/couchdb'
 project(":frameworks/couchdb").name = "couchdb"
+
+include 'sdk/testing'
+project(':sdk/testing').name = 'testing'

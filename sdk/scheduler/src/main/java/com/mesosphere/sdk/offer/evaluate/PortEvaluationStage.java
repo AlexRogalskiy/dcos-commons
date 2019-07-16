@@ -40,41 +40,63 @@ public class PortEvaluationStage implements OfferEvaluationStage {
 
   private final Logger logger;
 
-        // Update portSpec to reflect the assigned port value (for example, to reflect a dynamic port allocation):
-        Protos.Value.Builder valueBuilder = Protos.Value.newBuilder()
-                .setType(Protos.Value.Type.RANGES);
-        valueBuilder.getRangesBuilder().addRangeBuilder()
-                .setBegin(assignedPort)
-                .setEnd(assignedPort);
-        PortSpec updatedPortSpec = PortSpec.withValue(portSpec, valueBuilder.build());
+  private final PortSpec portSpec;
 
-        if (useHostPorts) {
-            OfferEvaluationUtils.ReserveEvaluationOutcome reserveEvaluationOutcome =
-                    OfferEvaluationUtils.evaluateSimpleResource(this, updatedPortSpec, resourceId, Optional.empty(),
-                            mesosResourcePool);
-            EvaluationOutcome evaluationOutcome = reserveEvaluationOutcome.getEvaluationOutcome();
-            if (!evaluationOutcome.isPassing()) {
-                return evaluationOutcome;
-            }
+  private final Collection<String> taskNames;
 
-            Optional<String> resourceIdResult = reserveEvaluationOutcome.getResourceId();
-            setProtos(podInfoBuilder, ResourceBuilder.fromSpec(updatedPortSpec, resourceIdResult).build());
-            return EvaluationOutcome.pass(
-                    this,
-                    evaluationOutcome.getOfferRecommendations(),
-                    "Offer contains required %sport: '%s' with resourceId: '%s'",
-                    resourceId.isPresent() ? "previously reserved " : "",
-                    assignedPort,
-                    resourceId)
-                    .mesosResource(evaluationOutcome.getMesosResource().get())
-                    .build();
-        } else {
-            setProtos(podInfoBuilder, ResourceBuilder.fromSpec(updatedPortSpec, resourceId).build());
-            return EvaluationOutcome.pass(
-                    this,
-                    "Port %s doesn't require resource reservation, ignoring resource requirements and using port %d",
-                    portSpec.getPortName(), assignedPort)
-                    .build();
+  private final Optional<String> resourceId;
+
+  private final Optional<String> resourceNamespace;
+
+  private final boolean useHostPorts;
+
+  public PortEvaluationStage(
+      PortSpec portSpec,
+      Collection<String> taskNames,
+      Optional<String> resourceId,
+      Optional<String> resourceNamespace)
+  {
+    this.logger = LoggingUtils.getLogger(getClass(), resourceNamespace);
+    this.portSpec = portSpec;
+    this.taskNames = taskNames;
+    this.resourceId = resourceId;
+    this.resourceNamespace = resourceNamespace;
+    this.useHostPorts = requireHostPorts(portSpec.getNetworkNames());
+  }
+
+  @Override
+  public EvaluationOutcome evaluate(MesosResourcePool mesosResourcePool,
+                                    PodInfoBuilder podInfoBuilder)
+  {
+    long requestedPort = portSpec.getValue().getRanges().getRange(0).getBegin();
+    long assignedPort = requestedPort;
+    if (requestedPort == 0) {
+      // If this is from an existing pod with the dynamic port already assigned and reserved, just keep it.
+      Optional<Long> priorTaskPort = getTaskNames().stream()
+          .map(taskName -> podInfoBuilder.getPriorPortForTask(taskName, portSpec))
+          .filter(priorPortForTask -> priorPortForTask.isPresent())
+          .map(priorPortForTask -> priorPortForTask.get())
+          .findAny();
+      if (priorTaskPort.isPresent()) {
+        // Reuse the prior port value.
+        assignedPort = priorTaskPort.get();
+        logger.info("Using previously reserved dynamic port: {}", assignedPort);
+      } else {
+        // Choose a new port value.
+        String preReservedRole = podInfoBuilder.getPodInstance().getPod().getPreReservedRole();
+        Optional<Integer> dynamicPort = useHostPorts ?
+            selectDynamicPort(mesosResourcePool, podInfoBuilder, preReservedRole, portSpec) :
+            selectOverlayPort(podInfoBuilder);
+        if (!dynamicPort.isPresent()) {
+          return EvaluationOutcome.fail(
+              this,
+              "No ports were available for dynamic claim in offer," +
+                  " and no matching port %s was present in prior %s: %s %s",
+              portSpec.getPortName(),
+              getTaskNames().isEmpty() ? "executor" : "tasks: " + getTaskNames(),
+              TextFormat.shortDebugString(mesosResourcePool.getOffer()),
+              podInfoBuilder.toString())
+              .build();
         }
         assignedPort = dynamicPort.get();
         logger.info("Claiming new dynamic port: {}", assignedPort);

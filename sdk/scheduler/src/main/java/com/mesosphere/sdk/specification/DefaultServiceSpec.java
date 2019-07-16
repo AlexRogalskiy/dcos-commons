@@ -749,7 +749,7 @@ public final class DefaultServiceSpec implements ServiceSpec {
             module.addDeserializer(GoalState.class, new GoalStateDeserializer());
             objectMapper.registerModule(module);
 
-            referenceTerminalGoalState = getReferenceTerminalGoalState(serviceSpec);
+            //referenceTerminalGoalState = getReferenceTerminalGoalState(serviceSpec);
         }
 
         @VisibleForTesting
@@ -767,7 +767,7 @@ public final class DefaultServiceSpec implements ServiceSpec {
                         "Failed to deserialize DefaultServiceSpecification from JSON: " + e.getMessage(), e);
             }
         }
-
+/*
         private GoalState getReferenceTerminalGoalState(ServiceSpec serviceSpec) {
             Collection<TaskSpec> serviceTasks =
                     serviceSpec.getPods().stream().flatMap(p -> p.getTasks().stream()).collect(Collectors.toList());
@@ -779,7 +779,7 @@ public final class DefaultServiceSpec implements ServiceSpec {
 
             return GoalState.ONCE;
         }
-
+*/
         @VisibleForTesting
         public static final Collection<Class<?>> getDefaultRegisteredSubtypes() {
             return defaultRegisteredSubtypes;
@@ -810,7 +810,7 @@ public final class DefaultServiceSpec implements ServiceSpec {
                 } else if (value.equals("RUNNING")) {
                     return GoalState.RUNNING;
                 } else {
-                    logger.warn("Found unknown goal state in config store: {}", value);
+                    LOGGER.warn("Found unknown goal state in config store: {}", value);
                     return GoalState.UNKNOWN;
                 }
             }

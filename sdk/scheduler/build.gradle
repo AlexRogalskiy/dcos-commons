@@ -1,6 +1,6 @@
-// Config specific to the dcos-commons library:
 plugins {
-    id 'application'
+    id 'de.fuerstenau.buildconfig' version '1.1.8'
+    id 'com.github.johnrengelman.shadow' version '5.0.0'
 }
 
 // Configure the SDKBuildInfo class generator
@@ -69,12 +69,11 @@ shadowJar {
 
 publishing {
     repositories {
-        def pxVersion = getPxVersion()
         maven {
-            if (pxVersion.endsWith('-SNAPSHOT')) {
-                url "s3://" + System.env['S3_RELEASE_BUCKET'] + "/maven-snapshot/"
+            if(project.version.endsWith('-SNAPSHOT')) {
+                url 's3://downloads.mesosphere.io/maven-snapshot/'
             } else {
-                url "s3://" + System.env['S3_RELEASE_BUCKET'] + "/maven/"
+                url 's3://downloads.mesosphere.io/maven/'
             }
             credentials(AwsCredentials) {
                 accessKey System.env['AWS_ACCESS_KEY_ID']
@@ -96,7 +95,8 @@ publishing {
             // Regular scheduler.jar (external deps) + source jar
             mavenJava(MavenPublication) {
                 artifactId 'scheduler'
-                version pxVersion
+                groupId project.group
+                version project.version
 
                 from components.java
                 artifact sourceJar

@@ -5,12 +5,8 @@ import com.mesosphere.sdk.offer.LoggingUtils;
 import com.mesosphere.sdk.specification.PodSpec;
 import com.mesosphere.sdk.specification.ResourceSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
-<<<<<<< HEAD
 
 import com.google.protobuf.TextFormat;
-=======
-import com.mesosphere.sdk.specification.DockerVolumeSpec;
->>>>>>> 4374fab47... Enable default executor
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 
@@ -117,29 +113,46 @@ public class ExecutorResourceMapper {
       }
     }
 
-    private OfferEvaluationStage newUpdateEvaluationStage(ResourceLabels resourceLabels) {
-        ResourceSpec resourceSpec = resourceLabels.getUpdated();
-        Optional<String> resourceId = Optional.of(resourceLabels.getResourceId());
-
-        if (resourceSpec instanceof VolumeSpec) {
-            return VolumeEvaluationStage.getExisting(
-                    (VolumeSpec) resourceSpec,
-                    null,
-                    resourceId,
-                    resourceLabels.getPersistenceId(),
-                    resourceLabels.getSourceRoot(),
-                    useDefaultExecutor);
-        } else {
-            return new ResourceEvaluationStage(resourceSpec, resourceId, resourceLabels.getPersistenceId(), null);
-        }
+    if (!remainingResourceSpecs.isEmpty()) {
+      logger.info("Missing resources not found in executor: {}", remainingResourceSpecs);
+      for (ResourceSpec missingResource : remainingResourceSpecs) {
+        stages.add(newCreateEvaluationStage(missingResource));
+      }
     }
 
-    private OfferEvaluationStage newCreateEvaluationStage(ResourceSpec resourceSpec) {
-        if (resourceSpec instanceof VolumeSpec) {
-            return VolumeEvaluationStage.getNew((VolumeSpec) resourceSpec, null, useDefaultExecutor);
-        } else {
-            return new ResourceEvaluationStage(resourceSpec, Optional.empty(), Optional.empty(), null);
-        }
+    return stages;
+  }
+
+  private OfferEvaluationStage newUpdateEvaluationStage(ResourceLabels resourceLabels) {
+    ResourceSpec resourceSpec = resourceLabels.getUpdated();
+    Optional<String> resourceId = Optional.of(resourceLabels.getResourceId());
+
+    if (resourceSpec instanceof VolumeSpec) {
+      return VolumeEvaluationStage.getExisting(
+          (VolumeSpec) resourceSpec,
+          Collections.emptyList(),
+          resourceId,
+          resourceLabels.getResourceNamespace(),
+          resourceLabels.getPersistenceId(),
+          resourceLabels.getProviderId(),
+          resourceLabels.getDiskSource());
+    } else {
+      return new ResourceEvaluationStage(
+          resourceSpec,
+          Collections.emptyList(),
+          resourceId,
+          resourceLabels.getResourceNamespace()
+      );
+    }
+  }
+
+  private OfferEvaluationStage newCreateEvaluationStage(ResourceSpec resourceSpec) {
+    if (resourceSpec instanceof VolumeSpec) {
+      return VolumeEvaluationStage.getNew(
+          (VolumeSpec) resourceSpec, Collections.emptyList(), resourceNamespace);
+    } else {
+      return new ResourceEvaluationStage(
+          resourceSpec, Collections.emptyList(), Optional.empty(), resourceNamespace);
     }
   }
 }
