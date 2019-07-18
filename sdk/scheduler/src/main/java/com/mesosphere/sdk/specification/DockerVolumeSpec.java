@@ -1,27 +1,35 @@
 package com.mesosphere.sdk.specification;
 
+import com.mesosphere.sdk.offer.Constants;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
 import org.apache.mesos.Protos;
-import com.mesosphere.sdk.offer.Constants;
-import com.mesosphere.sdk.specification.*;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class provides a implementation of the VolumeSpec interface for DockerVolumes.
  */
 public class DockerVolumeSpec extends DefaultVolumeSpec implements VolumeSpec {
+  private final String volumeName;
 
-    private final String volumeName;
-    private final String driverName;
-    private final Map<String, String> driverOptions;
-    private final String driverOptionsString;
+  private final String driverName;
 
-    public DockerVolumeSpec (
+  private final String pxdrivername = "pxd";
+
+  private final Map<String, String> driverOptions;
+
+  private final String driverOptionsString;
+
+  public DockerVolumeSpec(
             double diskSize,
             Type type,
             String volumeName,
@@ -30,13 +38,14 @@ public class DockerVolumeSpec extends DefaultVolumeSpec implements VolumeSpec {
             String containerPath,
             String role,
             String preReservedRole,
-            String principal) {
-        this(type, volumeName, driverName, driverOptions, containerPath, Constants.DISK_RESOURCE_TYPE,
-                scalarValue(diskSize), role, preReservedRole, principal);
-    }
+            String principal)
+  {
+    this(type, volumeName, driverName, driverOptions, containerPath, Constants.DISK_RESOURCE_TYPE,
+        scalarValue(diskSize), role, preReservedRole, principal);
+  }
 
-    @JsonCreator
-    private DockerVolumeSpec (
+  @JsonCreator
+  private DockerVolumeSpec(
             @JsonProperty("type") Type type,
             @JsonProperty("volume-name") String volumeName,
             @JsonProperty("driver-name") String driverName,
@@ -46,78 +55,82 @@ public class DockerVolumeSpec extends DefaultVolumeSpec implements VolumeSpec {
             @JsonProperty("value") Protos.Value value,
             @JsonProperty("role") String role,
             @JsonProperty("pre-reserved-role") String preReservedRole,
-            @JsonProperty("principal")  String principal) {
+            @JsonProperty("principal") String principal)
+  {
+    super(type, containerPath, Collections.emptyList(),
+        name, value, role, preReservedRole, principal);
 
-        super(type, containerPath, name, value, role, preReservedRole, principal);
+    if (volumeName == null || volumeName.isEmpty()) {
+      throw new IllegalArgumentException(String.format(
+          "Volume name can not be empty for DOCKER volume"));
+    }
+    if (driverName == null || driverName.isEmpty()) {
+      throw new IllegalArgumentException(String.format(
+          "Driver name can not be empty for DOCKER volume"));
+    }
+    if (!driverName.equals(pxdrivername)) {
+      throw new IllegalArgumentException(String.format(
+            "Only Portworx Docker driver is currently supported"));
+    }
 
-        if (volumeName == null || volumeName.isEmpty()) {
-            throw new IllegalArgumentException(String.format("Volume name can not be empty for DOCKER volume"));
+    this.volumeName = volumeName;
+    this.driverName = driverName;
+    this.driverOptionsString = driverOptions;
+    this.driverOptions = new HashMap<String, String>();
+
+    if (driverOptions != null && !driverOptions.isEmpty()) {
+      List<String> options = Arrays.asList(driverOptions.split(","));
+      for (String opt : options) {
+        String[] kv = opt.split("=");
+        // Ignore invalid options
+        if (kv.length < 2) {
+          continue;
         }
-        if (driverName == null || driverName.isEmpty()) {
-            throw new IllegalArgumentException(String.format("Driver name can not be empty for DOCKER volume"));
-        }
-        if (!driverName.equals("pxd")) {
-            throw new IllegalArgumentException(String.format("Only Portworx Docker driver is currently supported"));
-        }
-
-        this.volumeName = volumeName;
-        this.driverName = driverName;
-
-        this.driverOptionsString = driverOptions;
-        this.driverOptions = new HashMap<String, String>();
-        if (driverOptions != null && !driverOptions.isEmpty()) {
-            List<String> options = Arrays.asList(driverOptions.split(","));
-            for (String opt : options) {
-                String[] kv = opt.split("=");
-                // Ignore invalid options
-                if (kv.length < 2) {
-                    continue;
-                }
-                this.driverOptions.put(kv[0], kv[1]);
-            }
-        }
-
-        //ValidationUtils.validate(this);
+        this.driverOptions.put(kv[0], kv[1]);
+      }
     }
 
-    @JsonProperty("volume-name")
-    public String getVolumeName() {
-        return volumeName;
-    }
+    //ValidationUtils.validate(this);
+  }
 
-    @JsonProperty("driver-name")
-    public String getDriverName() {
-        return driverName;
-    }
+  @JsonProperty("volume-name")
+  public String getVolumeName() {
+    return volumeName;
+  }
 
-    @JsonProperty("driver-options")
-    public String getDriverOptionsString() {
-        return driverOptionsString;
-    }
+  @JsonProperty("driver-name")
+  public String getDriverName() {
+    return driverName;
+  }
 
-    public Map<String, String> getDriverOptions() {
-        return driverOptions;
-    }
+  @JsonProperty("driver-options")
+  public String getDriverOptionsString() {
+    return driverOptionsString;
+  }
 
-    private static Protos.Value scalarValue(double value) {
-        Protos.Value.Builder builder = Protos.Value.newBuilder().setType(Protos.Value.Type.SCALAR);
-        builder.getScalarBuilder().setValue(value);
-        return builder.build();
-    }
+  public Map<String, String> getDriverOptions() {
+    return driverOptions;
+  }
 
-    @Override
-    public String toString() {
-        return ReflectionToStringBuilder.toString(this);
-    }
+  private static Protos.Value scalarValue(double value) {
+    Protos.Value.Builder builder = Protos.Value.newBuilder().setType(Protos.Value.Type.SCALAR);
+    builder.getScalarBuilder().setValue(value);
+    return builder.build();
+  }
 
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
-    }
+  @Override
+  public String toString() {
+    return ReflectionToStringBuilder.toString(this);
+  }
 
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
+  @Override
+  public boolean equals(Object o) {
+    return EqualsBuilder.reflectionEquals(this, o);
+  }
+
+  @Override
+  public int hashCode() {
+    return HashCodeBuilder.reflectionHashCode(this);
+  }
 
 }

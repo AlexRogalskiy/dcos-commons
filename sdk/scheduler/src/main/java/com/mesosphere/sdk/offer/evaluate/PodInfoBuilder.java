@@ -23,6 +23,7 @@ import com.mesosphere.sdk.specification.CommandSpec;
 import com.mesosphere.sdk.specification.ConfigFileSpec;
 import com.mesosphere.sdk.specification.DefaultReadinessCheckSpec;
 import com.mesosphere.sdk.specification.DiscoverySpec;
+import com.mesosphere.sdk.specification.DockerVolumeSpec;
 import com.mesosphere.sdk.specification.HealthCheckSpec;
 import com.mesosphere.sdk.specification.HostVolumeSpec;
 import com.mesosphere.sdk.specification.NetworkSpec;
@@ -35,8 +36,7 @@ import com.mesosphere.sdk.specification.SecretSpec;
 import com.mesosphere.sdk.specification.TaskSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
 import com.mesosphere.sdk.state.GoalStateOverride;
-import com.mesosphere.sdk.specification.*;
-import com.mesosphere.sdk.offer.*;
+
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -44,11 +44,11 @@ import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 
 import java.net.URI;
-import java.util.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -79,6 +79,10 @@ public class PodInfoBuilder {
 
   private static final String CONFIG_TEMPLATE_DOWNLOAD_PATH = "config-templates/";
 
+  private static final String driver_name = "pxd";
+
+  private static final String true_value_flag = "true";
+
   private final Set<Long> assignedOverlayPorts = new HashSet<>();
 
   private final Map<String, Protos.TaskInfo.Builder> taskBuilders = new HashMap<>();
@@ -88,7 +92,6 @@ public class PodInfoBuilder {
   private final PodInstance podInstance;
 
   private final Map<String, TaskPortLookup> portsByTask;
-  private final boolean useDefaultExecutor;
 
   public PodInfoBuilder(
       PodInstanceRequirement podInstanceRequirement,
@@ -98,11 +101,10 @@ public class PodInfoBuilder {
       SchedulerConfig schedulerConfig,
       Collection<Protos.TaskInfo> currentPodTasks,
       Protos.FrameworkID frameworkID,
-      boolean useDefaultExecutor,
       Map<TaskSpec, GoalStateOverride> overrideMap) throws InvalidRequirementException
   {
     PodInstance podInstance = podInstanceRequirement.getPodInstance();
-    this.useDefaultExecutor = useDefaultExecutor;
+    //this.useDefaultExecutor = useDefaultExecutor;
     // Generate new TaskInfos based on the task spec. To keep things consistent, we always generate new TaskInfos
     // from scratch, with the only carry-over being any dynamic ports that were previously reserved, which is to
     // avoid having dynamic ports bounce around across relaunches.
@@ -395,7 +397,7 @@ public class PodInfoBuilder {
     // Inject TASK_NAME as KEY:VALUE
     environmentMap.put(EnvConstants.TASK_NAME_TASKENV, TaskSpec.getInstanceName(podInstance, taskSpec));
     // Inject TASK_NAME as KEY for conditional mustache templating
-    environmentMap.put(TaskSpec.getInstanceName(podInstance, taskSpec), "true");
+    environmentMap.put(TaskSpec.getInstanceName(podInstance, taskSpec), true_value_flag);
 
     // Inject PLACEMENT_REFERENCED_REGION
     environmentMap.put(
@@ -567,67 +569,179 @@ public class PodInfoBuilder {
    * @return the ContainerInfo to be attached
    */
   private Protos.ContainerInfo getContainerInfo(
-            PodSpec podSpec, int podIndex, boolean addExtraParameters, boolean isTaskContainer) {
-        Collection<Protos.Volume> secretVolumes = getExecutorInfoSecretVolumes(podSpec.getSecrets());
-        Protos.ContainerInfo.Builder containerInfo = Protos.ContainerInfo.newBuilder()
-                .setType(Protos.ContainerInfo.Type.MESOS);
+      PodSpec podSpec, int podIndex, boolean addExtraParameters, boolean isTaskContainer)
+  {
+    Collection<Protos.Volume> secretVolumes = getExecutorInfoSecretVolumes(podSpec.getSecrets());
+    Collection<Protos.Volume> hostVolumes = getExecutorInfoHostVolumes(podSpec.getHostVolumes());
+    Protos.ContainerInfo.Builder containerInfo = Protos.ContainerInfo.newBuilder()
+        .setType(Protos.ContainerInfo.Type.MESOS);
 
-        if (isTaskContainer) {
-            containerInfo.getLinuxInfoBuilder().setSharePidNamespace(podSpec.getSharePidNamespace());
+    if (isTaskContainer){
+      containerInfo.getLinuxInfoBuilder().setSharePidNamespace(podSpec.getSharePidNamespace());
+      Map<String, List<String>> addedVolumes = new HashMap<String, List<String>>();
+      if (!podSpec.getTasks().isEmpty()){
+        for (TaskSpec task : podSpec.getTasks()){
+          if (!task.getResourceSet().getVolumes().isEmpty()){
+            addDockerVolumes(containerInfo, task.getResourceSet().getVolumes(), podIndex, addedVolumes);
+          }
         }
+      }
+      if (!podSpec.getVolumes().isEmpty()){
+        addDockerVolumes(containerInfo, podSpec.getVolumes(), podIndex, addedVolumes);
+      }
+      // Isolate the tmp directory of tasks
+      // switch to SANDBOX SELF after dc/os 1.13
+      containerInfo.addVolumes(Protos.Volume.newBuilder()
+          .setContainerPath("/tmp")
+          .setHostPath("tmp")
+          .setMode(Protos.Volume.Mode.RW));
 
-        if (!useDefaultExecutor || (useDefaultExecutor && isTaskContainer)) {
-            Map<String, List<String>> addedVolumes = new HashMap<String, List<String>>();
-            if (!podSpec.getTasks().isEmpty()) {
-                for (TaskSpec task : podSpec.getTasks()) {
-                    if (!task.getResourceSet().getVolumes().isEmpty()) {
-                        addDockerVolumes(containerInfo, task.getResourceSet().getVolumes(), podIndex, addedVolumes);
-                    }
-                }
-            }
+      LOGGER.info("Setting seccomp info unconfined: {} profile: {}",
+            podSpec.getSeccompUnconfined(),
+            podSpec.getSeccompProfileName());
 
-            if (!podSpec.getVolumes().isEmpty()) {
-                addDockerVolumes(containerInfo, podSpec.getVolumes(), podIndex, addedVolumes);
-            }
-        }
+      if (podSpec.getSeccompUnconfined()) {
+        containerInfo.getLinuxInfoBuilder().setSeccomp(Protos.SeccompInfo.newBuilder()
+                .setUnconfined(podSpec.getSeccompUnconfined())
+                .build());
+      }
 
-        if (!podSpec.getImage().isPresent()
-                && podSpec.getNetworks().isEmpty()
-                && podSpec.getRLimits().isEmpty()
-                && secretVolumes.isEmpty()) {
-            // Nothing left to do.
-            return containerInfo.build();
-        }
-
-        boolean shouldAddImage =
-                podSpec.getImage().isPresent() &&
-                addExtraParameters &&
-                ((isTaskContainer && useDefaultExecutor) || (!isTaskContainer && !useDefaultExecutor));
-        if (shouldAddImage) {
-            containerInfo.getMesosBuilder().getImageBuilder()
-                    .setType(Protos.Image.Type.DOCKER)
-                    .getDockerBuilder().setName(podSpec.getImage().get());
-        }
-
-        // With the default executor, all NetworkInfos must be defined on the executor itself rather than individual
-        // tasks. This check can be made much less ugly once the custom executor no longer need be supported.
-        if (!podSpec.getNetworks().isEmpty() && (!useDefaultExecutor || !isTaskContainer)) {
-            containerInfo.addAllNetworkInfos(
-                    podSpec.getNetworks().stream().map(PodInfoBuilder::getNetworkInfo).collect(Collectors.toList()));
-        }
-
-        if (!podSpec.getRLimits().isEmpty() && addExtraParameters) {
-            containerInfo.setRlimitInfo(getRLimitInfo(podSpec.getRLimits()));
-        }
-
-        if (addExtraParameters) {
-            for (Protos.Volume secretVolume : secretVolumes) {
-                containerInfo.addVolumes(secretVolume);
-            }
-        }
-
-        return containerInfo.build();
+      if (podSpec.getSeccompProfileName().isPresent()) {
+        containerInfo.getLinuxInfoBuilder().setSeccomp(Protos.SeccompInfo.newBuilder()
+            .setProfileName(podSpec.getSeccompProfileName().get())
+            .build());
+      }
     }
+
+    for (Protos.Volume hostVolume : hostVolumes) {
+      containerInfo.addVolumes(hostVolume);
+    }
+
+    if (!podSpec.getImage().isPresent()
+        && podSpec.getNetworks().isEmpty()
+        && podSpec.getRLimits().isEmpty()
+        && secretVolumes.isEmpty())
+    {
+      // Nothing left to do.
+      return containerInfo.build();
+    }
+
+    boolean shouldAddImage =
+        podSpec.getImage().isPresent() &&
+            addExtraParameters &&
+            isTaskContainer;
+
+    if (shouldAddImage) {
+      containerInfo.getMesosBuilder().getImageBuilder()
+          .setType(Protos.Image.Type.DOCKER)
+          .getDockerBuilder().setName(podSpec.getImage().get());
+    }
+
+    // With the default executor, all NetworkInfos must be defined on the executor itself rather than individual
+    // tasks. This check can be made much less ugly once the custom executor no longer need be supported.
+    if (!podSpec.getNetworks().isEmpty() && !isTaskContainer) {
+      LOGGER.info("Adding NetworkInfos for networks: {}",
+          podSpec.getNetworks().stream().map(n -> n.getName()).collect(Collectors.toList()));
+      containerInfo.addAllNetworkInfos(
+          podSpec.getNetworks().stream().map(PodInfoBuilder::getNetworkInfo).collect(Collectors.toList()));
+    }
+
+    if (!podSpec.getRLimits().isEmpty() && addExtraParameters) {
+      containerInfo.setRlimitInfo(getRLimitInfo(podSpec.getRLimits()));
+    }
+
+    if (addExtraParameters) {
+      for (Protos.Volume secretVolume : secretVolumes) {
+        containerInfo.addVolumes(secretVolume);
+      }
+    }
+    return containerInfo.build();
+  }
+  /**
+  * Adds all Docker volumes to the container. If a volume was already added for the same driver it is skipped
+  * @param containerInfo The continaer in which the volmue should be added
+  * @param volumes Collection from which Docker Volumes types should be added
+  * @param podIndex Index of the pod. Used to contruct the docker volume name
+  * @param addedVolmues Map of volumes which have already been added for a driver
+  */
+
+  private static void addDockerVolumes(Protos.ContainerInfo.Builder containerInfo, Collection<VolumeSpec> volumes,
+      int podIndex, Map<String, List<String>> addedVolumes)
+  {
+    for (VolumeSpec volume : volumes) {
+      if (volume.getType() == VolumeSpec.Type.DOCKER) {
+        DockerVolumeSpec dockerVolume = (DockerVolumeSpec) volume;
+        String volumeName = dockerVolume.getVolumeName() + "-" + Integer.toString(podIndex);
+        // If the driver/volume has already been added, skip it
+        if (addedVolumes.containsKey(dockerVolume.getDriverName())) {
+          if (addedVolumes.get(dockerVolume.getDriverName()).contains(volumeName)) {
+            LOGGER.info("DOCKER volume {} with driver {} already present, skipping", volumeName, dockerVolume.getDriverName());
+            continue;
+          }
+        } else {
+          addedVolumes.put(dockerVolume.getDriverName(), new ArrayList<String>());
+        }
+        addedVolumes.get(dockerVolume.getDriverName()).add(volumeName);
+        LOGGER.info("Adding DOCKER volume {} with driver {} to pod", volumeName,
+            dockerVolume.getDriverName());
+        // Add all the driver options
+        List<Protos.Parameter> paramsList = new ArrayList<Protos.Parameter>();
+        Protos.Parameters.Builder driverOptions = Protos.Parameters.newBuilder();
+        if (dockerVolume.getDriverOptions() != null) {
+          for (Map.Entry<String, String> option : dockerVolume.getDriverOptions().entrySet()) {
+            // If it is a shared volume, reset the volume name to
+            // not have the pod index, so that all tasks get the
+            // same volume
+            if (option.getKey().equals("shared") && option.getValue().equals(true_value_flag)) {
+              volumeName = dockerVolume.getVolumeName();
+            }
+            paramsList.add(Protos.Parameter.newBuilder()
+                .setKey(option.getKey())
+                .setValue(option.getValue())
+                .build());
+          }
+        }
+        // Pass the volume size as an option. Size is in MB, round up to closest in GB
+        int sizeGB = (int) dockerVolume.getSize() / 1024;
+        if ((dockerVolume.getSize() % 1024) != 0) {
+          sizeGB++;
+        }
+        paramsList.add(Protos.Parameter.newBuilder()
+                  .setKey("size")
+                  .setValue(Integer.toString(sizeGB))
+                  .build());
+        if (dockerVolume.getDriverName().equals(driver_name)) {
+          // Favor creating volumes on the local node
+          paramsList.add(Protos.Parameter.newBuilder()
+                    .setKey("nodes")
+                    .setValue("LocalNode")
+                    .build());
+        }
+        driverOptions.addAllParameter(paramsList);
+        driverOptions.build();
+        // For pxd also add params inline
+        if (dockerVolume.getDriverName().equals(driver_name) && dockerVolume.getDriverOptions() != null) {
+          StringBuffer nameBuf = new StringBuffer();
+          nameBuf.append("name=" + volumeName + ";size=" + sizeGB + ";nodes=LocalNode");
+          for (Map.Entry<String, String> option : dockerVolume.getDriverOptions().entrySet()) {
+            nameBuf.append(";" + option.getKey() + "=" + option.getValue());
+          }
+          volumeName = nameBuf.toString();
+        }
+        containerInfo.addVolumes(Protos.Volume.newBuilder().setSource(
+                  Protos.Volume.Source.newBuilder()
+                          .setDockerVolume(Protos.Volume.Source.DockerVolume.newBuilder()
+                                  .setDriver(dockerVolume.getDriverName())
+                                  .setName(volumeName)
+                                  .setDriverOptions(driverOptions)
+                                  .build())
+                          .setType(Protos.Volume.Source.Type.DOCKER_VOLUME)
+                          .build())
+                  .setMode(Protos.Volume.Mode.RW)
+                  .setContainerPath(volume.getContainerPath()));
+      }
+    }
+  }
 
   private static Protos.NetworkInfo getNetworkInfo(NetworkSpec networkSpec) {
     Protos.NetworkInfo.Builder netInfoBuilder = Protos.NetworkInfo.newBuilder();
@@ -675,317 +789,109 @@ public class PodInfoBuilder {
   public int getIndex() {
     return podInstance.getIndex();
   }
-    public static Protos.Resource getExistingExecutorVolume(
-            VolumeSpec volumeSpec,
-            Optional<String> resourceId,
-            Optional<String> persistenceId,
-            Optional<String> sourceRoot,
-            boolean useDefaultExecutor) {
 
-        Protos.Resource.Builder builder = ResourceBuilder
-                .fromSpec(volumeSpec, resourceId, persistenceId, sourceRoot)
-                .build()
-                .toBuilder();
+  public PodInstance getPodInstance() {
+    return podInstance;
+  }
 
-        Protos.Resource.DiskInfo.Builder diskInfoBuilder = builder.getDiskBuilder();
-        diskInfoBuilder.getPersistenceBuilder()
-                .setId(persistenceId.get())
-                .setPrincipal(volumeSpec.getPrincipal());
-        diskInfoBuilder.getVolumeBuilder()
-                .setContainerPath(volumeSpec.getContainerPath())
-                .setMode(Protos.Volume.Mode.RW);
-
-        return builder.build();
-    }
-    /**
-     * Generates a Task environment containing the configured environment values from the {@link CommandSpec}, along
-     * with a set of default environment variables that all SDK tasks get for free.
-     */
-    @VisibleForTesting
-    public static Map<String, String> getTaskEnvironment(
-            String serviceName, PodInstance podInstance, TaskSpec taskSpec) {
-        Map<String, String> environmentMap = new TreeMap<>();
-
-        // Task envvars from either of the following sources:
-        // - ServiceSpec (provided by developer)
-        // - TASKCFG_<podname>_* (provided by user, handled when parsing YAML, potentially overrides ServiceSpec)
-        if (taskSpec.getCommand().isPresent()) {
-            environmentMap.putAll(taskSpec.getCommand().get().getEnvironment());
-        }
-
-        // Default envvars for use by executors/developers:
-        // Unline the envvars added in getExecutorEnvironment(), these are specific to individual tasks and currently
-        // aren't visible to sidecar tasks (as they would need to be added at the executor...):
-
-        // Inject Pod Instance Index
-        environmentMap.put(EnvConstants.POD_INSTANCE_INDEX_TASKENV, String.valueOf(podInstance.getIndex()));
-        // Inject Framework Name (raw, not safe for use in hostnames)
-        environmentMap.put(EnvConstants.FRAMEWORK_NAME_TASKENV, serviceName);
-        // Inject Framework pod host domain (with hostname-safe framework name)
-        environmentMap.put(EnvConstants.FRAMEWORK_HOST_TASKENV, EndpointUtils.toAutoIpDomain(serviceName));
-        // Inject Framework VIP domain (with hostname-safe framework name)
-        environmentMap.put(EnvConstants.FRAMEWORK_VIP_HOST_TASKENV, EndpointUtils.toVipDomain(serviceName));
-        // Inject Scheduler API hostname (with hostname-safe scheduler name)
-        environmentMap.put(EnvConstants.SCHEDULER_API_HOSTNAME_TASKENV,
-                EndpointUtils.toSchedulerApiVipHostname(serviceName));
-
-        // Inject TASK_NAME as KEY:VALUE
-        environmentMap.put(EnvConstants.TASK_NAME_TASKENV, TaskSpec.getInstanceName(podInstance, taskSpec));
-        // Inject TASK_NAME as KEY for conditional mustache templating
-        environmentMap.put(TaskSpec.getInstanceName(podInstance, taskSpec), "true");
-
-        // Inject PLACEMENT_REFERENCED_REGION
-        environmentMap.put(
-                EnvConstants.PLACEMENT_REFERENCED_REGION_ENV,
-                String.valueOf(PlacementUtils.placementRuleReferencesRegion(podInstance.getPod())));
-        // Inject PLACEMENT_REFERENCED_ZONE
-        environmentMap.put(
-                EnvConstants.PLACEMENT_REFERENCED_ZONE_ENV,
-                String.valueOf(PlacementUtils.placementRuleReferencesZone(podInstance.getPod())));
-
-        return environmentMap;
-    }
-    private void setHealthCheck(
-            Protos.TaskInfo.Builder taskInfo,
-            String serviceName,
-            PodInstance podInstance,
-            TaskSpec taskSpec,
-            GoalStateOverride override) {
-        if (!taskSpec.getHealthCheck().isPresent()) {
-            LOGGER.debug("No health check defined for taskSpec: {}", taskSpec.getName());
-            return;
-        }
-
-        if (override.equals(GoalStateOverride.PAUSED)) {
-            LOGGER.info("Removing health check for PAUSED task: {}", taskSpec.getName());
-            return;
-        }
-
-        HealthCheckSpec healthCheckSpec = taskSpec.getHealthCheck().get();
-        Protos.HealthCheck.Builder healthCheckBuilder = taskInfo.getHealthCheckBuilder();
-        healthCheckBuilder
-                .setDelaySeconds(healthCheckSpec.getDelay())
-                .setIntervalSeconds(healthCheckSpec.getInterval())
-                .setTimeoutSeconds(healthCheckSpec.getTimeout())
-                .setConsecutiveFailures(healthCheckSpec.getMaxConsecutiveFailures())
-                .setGracePeriodSeconds(healthCheckSpec.getGracePeriod());
-
-        if (useDefaultExecutor) {
-            healthCheckBuilder.setType(Protos.HealthCheck.Type.COMMAND);
-        }
-
-        healthCheckBuilder.getCommandBuilder()
-                .setValue(healthCheckSpec.getCommand())
-                .setEnvironment(EnvUtils.toProto(getTaskEnvironment(serviceName, podInstance, taskSpec)));
+  /**
+   * Checks that the TaskInfo is valid at the point of requirement construction, making it
+   * easier for the framework developer to trace problems in their implementation. These checks
+   * reflect requirements enforced elsewhere, eg in {@link com.mesosphere.sdk.state.StateStore}.
+   */
+  private static void validateTaskInfo(Protos.TaskInfo.Builder builder)
+      throws InvalidRequirementException
+  {
+    if (!builder.hasName() || StringUtils.isEmpty(builder.getName())) {
+      throw new InvalidRequirementException(String.format(
+          "TaskInfo must have a name: %s", builder));
     }
 
-    private void setReadinessCheck(
-            Protos.TaskInfo.Builder taskInfoBuilder,
-            String serviceName,
-            PodInstance podInstance,
-            TaskSpec taskSpec,
-            GoalStateOverride override) {
-
-        ReadinessCheckSpec readinessCheckSpec = readinessCheckSpecOptional.get();
-
-        if (useDefaultExecutor) {
-            // Default executors supports the newer TaskInfo.check field:
-            Protos.CheckInfo.Builder builder = taskInfoBuilder.getCheckBuilder()
-                    .setType(Protos.CheckInfo.Type.COMMAND)
-                    .setDelaySeconds(readinessCheckSpec.getDelay())
-                    .setIntervalSeconds(readinessCheckSpec.getInterval())
-                    .setTimeoutSeconds(readinessCheckSpec.getTimeout());
-            builder.getCommandBuilder().getCommandBuilder()
-                    .setValue(readinessCheckSpec.getCommand())
-                    .setEnvironment(EnvUtils.toProto(getTaskEnvironment(serviceName, podInstance, taskSpec)));
-        } else {
-            // Custom executor implies older Mesos where TaskInfo.check doesn't exist yet. Fall back to label hack:
-            Protos.HealthCheck.Builder builder = Protos.HealthCheck.newBuilder()
-                    .setDelaySeconds(readinessCheckSpec.getDelay())
-                    .setIntervalSeconds(readinessCheckSpec.getInterval())
-                    .setTimeoutSeconds(readinessCheckSpec.getTimeout());
-            builder.getCommandBuilder()
-                    .setValue(readinessCheckSpec.getCommand())
-                    .setEnvironment(EnvUtils.toProto(getTaskEnvironment(serviceName, podInstance, taskSpec)));
-            taskInfoBuilder.setLabels(new TaskLabelWriter(taskInfoBuilder)
-                    .setReadinessCheck(builder.build())
-                    .toProto());
-        }
-    }
-    /**
-     * Adds all Docker volumes to the container. If a volume was already added for the same driver it is skipped
-     * @param containerInfo The continaer in which the volmue should be added
-     * @param volumes Collection from which Docker Volumes types should be added
-     * @param podIndex Index of the pod. Used to contruct the docker volume name
-     * @param addedVolmues Map of volumes which have already been added for a driver
-     */
-    private static void addDockerVolumes(Protos.ContainerInfo.Builder containerInfo, Collection<VolumeSpec> volumes,
-            int podIndex, Map<String, List<String>> addedVolumes) {
-        for (VolumeSpec volume : volumes) {
-            if (volume.getType() == VolumeSpec.Type.DOCKER) {
-                DockerVolumeSpec dockerVolume = (DockerVolumeSpec) volume;
-                String volumeName = dockerVolume.getVolumeName() + "-" + Integer.toString(podIndex);
-                // If the driver/volume has already been added, skip it
-                if (addedVolumes.containsKey(dockerVolume.getDriverName())) {
-                    if (addedVolumes.get(dockerVolume.getDriverName()).contains(volumeName)) {
-                        LOGGER.info("DOCKER volume {} with driver {} already present, skipping", volumeName,
-                                dockerVolume.getDriverName());
-                        continue;
-                    }
-                } else {
-                    addedVolumes.put(dockerVolume.getDriverName(), new ArrayList<String>());
-                }
-                addedVolumes.get(dockerVolume.getDriverName()).add(volumeName);
-
-                LOGGER.info("Adding DOCKER volume {} with driver {} to pod", volumeName,
-                        dockerVolume.getDriverName());
-                // Add all the driver options
-                List<Protos.Parameter> paramsList = new ArrayList<Protos.Parameter>();
-                Protos.Parameters.Builder driverOptions = Protos.Parameters.newBuilder();
-                if (dockerVolume.getDriverOptions() != null) {
-                    for (Map.Entry<String, String> option : dockerVolume.getDriverOptions().entrySet()) {
-                        // If it is a shared volume, reset the volume name to
-                        // not have the pod index, so that all tasks get the
-                        // same volume
-                        if (option.getKey().equals("shared") && option.getValue().equals("true")) {
-                            volumeName = dockerVolume.getVolumeName();
-                        }
-                        paramsList.add(Protos.Parameter.newBuilder()
-                                .setKey(option.getKey())
-                                .setValue(option.getValue())
-                                .build());
-                    }
-                }
-                // Pass the volume size as an option. Size is in MB, round up to closest in GB
-                int sizeGB = (int) dockerVolume.getSize() / 1024;
-                if ((dockerVolume.getSize() % 1024) != 0) {
-                    sizeGB++;
-                }
-                paramsList.add(Protos.Parameter.newBuilder()
-                        .setKey("size")
-                        .setValue(Integer.toString(sizeGB))
-                        .build());
-
-                if (dockerVolume.getDriverName().equals("pxd")) {
-                    // Favor creating volumes on the local node
-                    paramsList.add(Protos.Parameter.newBuilder()
-                            .setKey("nodes")
-                            .setValue("LocalNode")
-                            .build());
-                }
-
-                driverOptions.addAllParameter(paramsList);
-                driverOptions.build();
-
-                // For pxd also add params inline
-                if (dockerVolume.getDriverName().equals("pxd") && dockerVolume.getDriverOptions() != null) {
-                    StringBuffer nameBuf = new StringBuffer();
-                    nameBuf.append("name=" + volumeName);
-                    for (Map.Entry<String, String> option : dockerVolume.getDriverOptions().entrySet()) {
-                        nameBuf.append(";" + option.getKey() + "=" + option.getValue());
-                    }
-                    volumeName = nameBuf.toString();
-                }
-                containerInfo.addVolumes(Protos.Volume.newBuilder().setSource(
-                        Protos.Volume.Source.newBuilder()
-                                .setDockerVolume(Protos.Volume.Source.DockerVolume.newBuilder()
-                                        .setDriver(dockerVolume.getDriverName())
-                                        .setName(volumeName)
-                                        .setDriverOptions(driverOptions)
-                                        .build())
-                                .setType(Protos.Volume.Source.Type.DOCKER_VOLUME)
-                                .build())
-                        .setMode(Protos.Volume.Mode.RW)
-                        .setContainerPath(volume.getContainerPath()));
-            }
-        }
-    }
-    public PodInstance getPodInstance() {
-        return podInstance;
+    if (builder.hasTaskId()
+        && !StringUtils.isEmpty(builder.getTaskId().getValue()))
+    {
+      // Task ID may be included if this is replacing an existing task. In that case, we still
+      // perform a sanity check to ensure that the original Task ID was formatted correctly.
+      // We must allow Task ID to be present but empty because it is a required proto field.
+      String taskName;
+      try {
+        taskName = CommonIdUtils.toTaskName(builder.getTaskId());
+      } catch (TaskException e) {
+        throw new InvalidRequirementException(String.format(
+            "When non-empty, TaskInfo.id must be a valid ID. "
+                + "Set to an empty string or leave existing valid value. %s %s",
+            builder, e));
+      }
+      if (!taskName.equals(builder.getName())) {
+        throw new InvalidRequirementException(String.format(
+            "When non-empty, TaskInfo.id must align with TaskInfo.name. Use "
+                + "TaskUtils.toTaskId(): %s", builder));
+      }
     }
 
-    /**
-     * Checks that the TaskInfo is valid at the point of requirement construction, making it
-     * easier for the framework developer to trace problems in their implementation. These checks
-     * reflect requirements enforced elsewhere, eg in {@link com.mesosphere.sdk.state.StateStore}.
-     */
-    private static void validateTaskInfo(Protos.TaskInfo.Builder builder)
-            throws InvalidRequirementException {
-        if (!builder.hasName() || StringUtils.isEmpty(builder.getName())) {
-            throw new InvalidRequirementException(String.format(
-                    "TaskInfo must have a name: %s", builder));
-        }
-
-        if (builder.hasTaskId()
-                && !StringUtils.isEmpty(builder.getTaskId().getValue())) {
-            // Task ID may be included if this is replacing an existing task. In that case, we still
-            // perform a sanity check to ensure that the original Task ID was formatted correctly.
-            // We must allow Task ID to be present but empty because it is a required proto field.
-            String taskName;
-            try {
-                taskName = CommonIdUtils.toTaskName(builder.getTaskId());
-            } catch (TaskException e) {
-                throw new InvalidRequirementException(String.format(
-                        "When non-empty, TaskInfo.id must be a valid ID. "
-                                + "Set to an empty string or leave existing valid value. %s %s",
-                        builder, e));
-            }
-            if (!taskName.equals(builder.getName())) {
-                throw new InvalidRequirementException(String.format(
-                        "When non-empty, TaskInfo.id must align with TaskInfo.name. Use "
-                                + "TaskUtils.toTaskId(): %s", builder));
-            }
-        }
-
-        if (builder.hasExecutor()) {
-            throw new InvalidRequirementException(String.format(
-                    "TaskInfo must not contain ExecutorInfo. "
-                            + "Use ExecutorRequirement for any Executor requirements: %s", builder));
-        }
-
-        TaskLabelReader labels = new TaskLabelReader(builder);
-
-        try {
-            labels.getType();
-        } catch (TaskException e) {
-            throw new InvalidRequirementException(e);
-        }
-
-        try {
-            labels.getIndex();
-        } catch (TaskException e) {
-            throw new InvalidRequirementException(e);
-        }
+    if (builder.hasExecutor()) {
+      throw new InvalidRequirementException(String.format(
+          "TaskInfo must not contain ExecutorInfo. "
+              + "Use ExecutorRequirement for any Executor requirements: %s", builder));
     }
 
-    private static Protos.Secret getReferenceSecret(String secretPath) {
-        return Protos.Secret.newBuilder()
-                .setType(Protos.Secret.Type.REFERENCE)
-                .setReference(Protos.Secret.Reference.newBuilder().setName(secretPath))
-                .build();
+    TaskLabelReader labels = new TaskLabelReader(builder);
+
+    try {
+      labels.getType();
+    } catch (TaskException e) {
+      throw new InvalidRequirementException(e);
     }
 
-    private static Collection<Protos.Volume> getExecutorInfoSecretVolumes(Collection<SecretSpec> secretSpecs) {
-        Collection<Protos.Volume> volumes = new ArrayList<>();
+    try {
+      labels.getIndex();
+    } catch (TaskException e) {
+      throw new InvalidRequirementException(e);
+    }
+  }
 
-        for (SecretSpec secretSpec: secretSpecs) {
-            if (secretSpec.getFilePath().isPresent()) {
-                volumes.add(Protos.Volume.newBuilder()
-                        .setSource(Protos.Volume.Source.newBuilder()
-                                .setType(Protos.Volume.Source.Type.SECRET)
-                                .setSecret(getReferenceSecret(secretSpec.getSecretPath()))
-                                .build())
-                        .setContainerPath(secretSpec.getFilePath().get())
-                        .setMode(Protos.Volume.Mode.RO)
-                        .build());
-            }
-        }
-        return volumes;
+  private static Protos.Secret getReferenceSecret(String secretPath) {
+    return Protos.Secret.newBuilder()
+        .setType(Protos.Secret.Type.REFERENCE)
+        .setReference(Protos.Secret.Reference.newBuilder().setName(secretPath))
+        .build();
+  }
+
+  private static Collection<Protos.Volume> getExecutorInfoHostVolumes(Collection<HostVolumeSpec> hostVolumeSpecs) {
+    Collection<Protos.Volume> volumes = new ArrayList<>();
+
+    for (HostVolumeSpec hostVolumeSpec : hostVolumeSpecs) {
+      volumes.add(Protos.Volume.newBuilder()
+          .setHostPath(hostVolumeSpec.getHostPath())
+          .setContainerPath(hostVolumeSpec.getContainerPath())
+          .setMode(Protos.Volume.Mode.RW)
+          .build());
     }
 
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
+    return volumes;
+  }
+
+  private static Collection<Protos.Volume> getExecutorInfoSecretVolumes(Collection<SecretSpec> secretSpecs) {
+    Collection<Protos.Volume> volumes = new ArrayList<>();
+
+    for (SecretSpec secretSpec : secretSpecs) {
+      if (secretSpec.getFilePath().isPresent()) {
+        volumes.add(Protos.Volume.newBuilder()
+            .setSource(Protos.Volume.Source.newBuilder()
+                .setType(Protos.Volume.Source.Type.SECRET)
+                .setSecret(getReferenceSecret(secretSpec.getSecretPath()))
+                .build())
+            .setContainerPath(secretSpec.getFilePath().get())
+            .setMode(Protos.Volume.Mode.RO)
+            .build());
+      }
     }
+    return volumes;
+  }
+
+  @Override
+  public String toString() {
+    return ToStringBuilder.reflectionToString(this);
+  }
 
 }

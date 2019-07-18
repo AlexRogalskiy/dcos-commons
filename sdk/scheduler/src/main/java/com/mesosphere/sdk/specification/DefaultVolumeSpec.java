@@ -82,7 +82,7 @@ public class DefaultVolumeSpec extends DefaultResourceSpec implements VolumeSpec
   }
 
   @JsonCreator
-  private DefaultVolumeSpec(
+  public DefaultVolumeSpec(
       @JsonProperty("type") Type type,
       @JsonProperty("container-path") String containerPath,
       @JsonProperty("profiles") List<String> profiles,
@@ -107,8 +107,8 @@ public class DefaultVolumeSpec extends DefaultResourceSpec implements VolumeSpec
   }
 
   public double getSize() {
-        return getValue().getScalar().getValue();
-    }
+    return getValue().getScalar().getValue();
+  }
 
 
   @Override

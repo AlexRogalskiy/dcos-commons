@@ -1,25 +1,22 @@
 rootProject.name = 'dcos-commons'
 
-include 'frameworks/cassandra'
-project(':frameworks/cassandra').name = 'cassandra'
-
-include 'frameworks/elastic'
-project(':frameworks/elastic').name = 'elastic'
-
-include 'frameworks/hdfs'
-project(':frameworks/hdfs').name = 'hdfs'
-
-include 'frameworks/helloworld'
-project(':frameworks/helloworld').name = 'helloworld'
-
 include 'frameworks/helloworld/tests/tls/keystore'
 project(':frameworks/helloworld/tests/tls/keystore').name = 'keystore-app'
 
 include 'sdk/scheduler'
 project(':sdk/scheduler').name = 'scheduler'
 
-include 'frameworks/portworx'
-project(":frameworks/portworx").name = "portworx"
+include 'sdk/testing'
+project(':sdk/testing').name = 'testing'
+
+include 'frameworks/cassandra'
+project(':frameworks/cassandra').name = 'cassandra'
+/*
+include 'frameworks/hdfs'
+project(':frameworks/hdfs').name = 'hdfs'
+
+include 'frameworks/helloworld'
+project(':frameworks/helloworld').name = 'helloworld'
 
 include 'frameworks/zookeeper'
 project(":frameworks/zookeeper").name = "zookeeper"
@@ -27,5 +24,9 @@ project(":frameworks/zookeeper").name = "zookeeper"
 include 'frameworks/couchdb'
 project(":frameworks/couchdb").name = "couchdb"
 
-include 'sdk/testing'
-project(':sdk/testing').name = 'testing'
+include 'frameworks/portworx'
+project(":frameworks/portworx").name = "portworx"
+
+include 'frameworks/elastic'
+project(':frameworks/elastic').name = 'elastic'
+*/

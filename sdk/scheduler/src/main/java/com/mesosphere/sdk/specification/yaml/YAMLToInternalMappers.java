@@ -25,6 +25,7 @@ import com.mesosphere.sdk.specification.DefaultTaskSpec;
 import com.mesosphere.sdk.specification.DefaultTransportEncryptionSpec;
 import com.mesosphere.sdk.specification.DefaultVolumeSpec;
 import com.mesosphere.sdk.specification.DiscoverySpec;
+import com.mesosphere.sdk.specification.DockerVolumeSpec;
 import com.mesosphere.sdk.specification.GoalState;
 import com.mesosphere.sdk.specification.HealthCheckSpec;
 import com.mesosphere.sdk.specification.HostVolumeSpec;
@@ -41,8 +42,6 @@ import com.mesosphere.sdk.specification.ServiceSpec;
 import com.mesosphere.sdk.specification.TaskSpec;
 import com.mesosphere.sdk.specification.TransportEncryptionSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
-import com.mesosphere.sdk.specification.*;
-import com.mesosphere.sdk.offer.*;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
@@ -525,7 +524,6 @@ public final class YAMLToInternalMappers {
       String principal,
       Collection<String> networkNames)
   {
-
     DefaultResourceSet.Builder resourceSetBuilder =
         DefaultResourceSet.newBuilder(role, preReservedRole, principal);
 
@@ -542,8 +540,8 @@ public final class YAMLToInternalMappers {
             rawVolume.getDockerDriverName(),
             rawVolume.getDockerDriverOptions(),
             Double.valueOf(rawVolume.getSize()),
-            rawVolume.getPath());
-            //rawVolume.getProfiles());
+            rawVolume.getPath(),
+            Collections.emptyList());
       }
     }
     if (rawSingleVolume != null) {
@@ -553,8 +551,8 @@ public final class YAMLToInternalMappers {
           rawSingleVolume.getDockerDriverName(),
           rawSingleVolume.getDockerDriverOptions(),
           Double.valueOf(rawSingleVolume.getSize()),
-          rawSingleVolume.getPath());
-          //rawSingleVolume.getProfiles());
+          rawSingleVolume.getPath(),
+          Collections.emptyList());
     }
 
     if (cpus != null) {
@@ -601,19 +599,34 @@ public final class YAMLToInternalMappers {
         .build();
   }
 
-  private static VolumeSpec convertVolume(
-            RawVolume rawVolume, String role, String preReservedRole, String principal) {
-        VolumeSpec.Type volumeTypeEnum;
-        try {
-            volumeTypeEnum = VolumeSpec.Type.valueOf(rawVolume.getType());
-        } catch (Exception e) {
-            throw new IllegalArgumentException(String.format(
-                    "Provided volume type '%s' for path '%s' is invalid. Expected type to be one of: %s",
-                    rawVolume.getType(), rawVolume.getPath(), Arrays.asList(VolumeSpec.Type.values())));
-        }
-
-        if (volumeTypeEnum == VolumeSpec.Type.DOCKER) {
-            return new DockerVolumeSpec(
+  private static DefaultVolumeSpec convertVolume(
+      RawVolume rawVolume, String role, String preReservedRole, String principal)
+  {
+    VolumeSpec.Type volumeTypeEnum;
+    try {
+      volumeTypeEnum = VolumeSpec.Type.valueOf(rawVolume.getType());
+    } catch (Exception e) {
+      throw new IllegalArgumentException(String.format(
+          "Provided volume type '%s' for path '%s' is invalid. Expected type to be one of: %s",
+          rawVolume.getType(), rawVolume.getPath(), Arrays.asList(VolumeSpec.Type.values())));
+    }
+    if (volumeTypeEnum == VolumeSpec.Type.ROOT) {
+      return volumeTypeEnum == VolumeSpec.Type.ROOT
+        ? DefaultVolumeSpec.createRootVolume(
+        rawVolume.getSize(),
+        rawVolume.getPath(),
+        role,
+        preReservedRole,
+        principal)
+        : DefaultVolumeSpec.createMountVolume(
+        rawVolume.getSize(),
+        rawVolume.getPath(),
+        Collections.emptyList(),
+        role,
+        preReservedRole,
+        principal);
+    } else if (volumeTypeEnum == VolumeSpec.Type.DOCKER) {
+      return new DockerVolumeSpec(
                     rawVolume.getSize(),
                     volumeTypeEnum,
                     rawVolume.getDockerVolumeName(),
@@ -623,16 +636,16 @@ public final class YAMLToInternalMappers {
                     role,
                     preReservedRole,
                     principal);
-        } else {
-            return new DefaultVolumeSpec(
-                    rawVolume.getSize(),
-                    volumeTypeEnum,
-                    rawVolume.getPath(),
-                    role,
-                    preReservedRole,
-                    principal);
-        }
+    } else {
+      return DefaultVolumeSpec.createMountVolume(
+        rawVolume.getSize(),
+        rawVolume.getPath(),
+        Collections.emptyList(),
+        role,
+        preReservedRole,
+        principal);
     }
+  }
 
   private static Map<String, String> convertLabels(
       String rawLabelsCsv) throws IllegalArgumentException

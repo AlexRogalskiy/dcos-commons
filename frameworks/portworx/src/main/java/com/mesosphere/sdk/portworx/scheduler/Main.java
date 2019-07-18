@@ -29,7 +29,7 @@ public class Main {
     private static final long CUSTOM_SDK_REST_PORT_OFFSET = 17;
     private static final String SDK_REST_PORT_NAME = "sdk";
     private static final Integer MIN_REPLACE_DELAY_MIN = 0;
-
+    private static final Collection<String> networkNames;
 
     public static void main(String[] args) throws Exception {
         if (args.length != 1) {
@@ -101,7 +101,7 @@ public class Main {
         } else {
             role = serviceSpec.getRole();
         }
-
+        
         Long sdkRestPort = getSdkRestPort();
         for (Long portNumber : getPortList()) {
             if (portNumber.equals(sdkRestPort)) {
@@ -117,7 +117,7 @@ public class Main {
                             .build(),
                     role, preReservedRole, serviceSpec.getPrincipal(), null,
                     "px_" + String.valueOf(portNumber),
-                    Protos.DiscoveryInfo.Visibility.CLUSTER, Collections.emptyList()));
+                    Protos.DiscoveryInfo.Visibility.CLUSTER, networkNames, Collections.emptyList()));
         }
 
         resourceSetBuilder.addResource(new NamedVIPSpec(
@@ -129,8 +129,8 @@ public class Main {
                         .setType(Protos.Value.Type.RANGES)
                         .build(),
                 role, preReservedRole, serviceSpec.getPrincipal(), null,
-                SDK_REST_PORT_NAME, DcosConstants.DEFAULT_IP_PROTOCOL, Protos.DiscoveryInfo.Visibility.CLUSTER,
-                SDK_REST_PORT_NAME, sdkRestPort.intValue(), Collections.emptyList()));
+                SDK_REST_PORT_NAME, Protos.DiscoveryInfo.Visibility.CLUSTER, networkNames, DcosConstants.DEFAULT_IP_PROTOCOL,
+                "", sdkRestPort.intValue()));
 
         TaskSpec updatedInstallTask = DefaultTaskSpec.newBuilder(installTask)
                 .resourceSet(resourceSetBuilder.build())

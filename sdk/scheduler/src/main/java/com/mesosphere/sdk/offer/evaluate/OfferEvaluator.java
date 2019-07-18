@@ -83,6 +83,7 @@ public class OfferEvaluator {
   private final SchedulerConfig schedulerConfig;
 
   private final Optional<String> resourceNamespace;
+  //private final boolean useDefaultExecutor;
 
   public OfferEvaluator(
       FrameworkStore frameworkStore,
@@ -105,6 +106,7 @@ public class OfferEvaluator {
     this.schedulerConfig = schedulerConfig;
     this.resourceNamespace = resourceNamespace;
     this.offerOutcomeTrackerV2 = offerOutcomeTrackerV2;
+    //this.useDefaultExecutor = useDefaultExecutor;
   }
 
   public List<OfferRecommendation> evaluate(PodInstanceRequirement podInstanceRequirement, List<Protos.Offer> offers)
@@ -148,6 +150,7 @@ public class OfferEvaluator {
           schedulerConfig,
           thisPodTasks.values(),
           frameworkStore.fetchFrameworkId().get(),
+          //useDefaultExecutor,
           overrideMap);
       List<EvaluationOutcome> outcomes = new ArrayList<>();
       int failedOutcomeCount = 0;
