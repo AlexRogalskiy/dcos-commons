@@ -29,9 +29,10 @@ pods:
             vip:
               prefix: api
               port: {{PORTWORX_START_PORT}}
-    placement: {{NODE_PLACEMENT}}
+    placement: '{{{NODE_PLACEMENT}}}'
     uris:
       - {{SYSCTL_URI}}
+      - {{JAVA_URI}}
     {{#PRE_RESERVED_ROLE}}
     pre-reserved-role: {{PRE_RESERVED_ROLE}}
     {{/PRE_RESERVED_ROLE}}
