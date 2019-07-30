@@ -541,7 +541,7 @@ public final class YAMLToInternalMappers {
             rawVolume.getDockerDriverOptions(),
             Double.valueOf(rawVolume.getSize()),
             rawVolume.getPath(),
-            Collections.emptyList());
+            rawVolume.getProfiles());
       }
     }
     if (rawSingleVolume != null) {
@@ -552,7 +552,7 @@ public final class YAMLToInternalMappers {
           rawSingleVolume.getDockerDriverOptions(),
           Double.valueOf(rawSingleVolume.getSize()),
           rawSingleVolume.getPath(),
-          Collections.emptyList());
+          rawSingleVolume.getProfiles());
     }
 
     if (cpus != null) {

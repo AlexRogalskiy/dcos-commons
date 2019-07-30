@@ -721,16 +721,16 @@ public class DefaultServiceSpecTest {
     }
 
     private void validateServiceSpec(String fileName, Boolean supportGpu) throws Exception {
-        //ClassLoader classLoader = getClass().getClassLoader();
-        //File file = new File(classLoader.getResource(fileName).getFile());
-        //DefaultServiceSpec serviceSpec = DefaultServiceSpec.newGenerator(file, SCHEDULER_CONFIG).build();
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(classLoader.getResource(fileName).getFile());
+        DefaultServiceSpec serviceSpec = DefaultServiceSpec.newGenerator(file, SCHEDULER_CONFIG).build();
         capabilities = mock(Capabilities.class);
         when(capabilities.supportsGpuResource()).thenReturn(supportGpu);
         when(capabilities.supportsCNINetworking()).thenReturn(true);
         when(capabilities.supportsDomains()).thenReturn(true);
 
         Capabilities.overrideCapabilities(capabilities);
-        //DefaultScheduler.newBuilder(serviceSpec, SCHEDULER_CONFIG, MemPersister.newBuilder().build()).build();
+        DefaultScheduler.newBuilder(serviceSpec, SCHEDULER_CONFIG, MemPersister.newBuilder().build()).build();
     }
 
     @Test

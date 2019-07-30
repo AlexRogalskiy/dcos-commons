@@ -2,6 +2,9 @@ package com.mesosphere.sdk.specification.yaml;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.Collections;
+import java.util.List;
+
 /**
  * Raw YAML volume.
  */
@@ -17,6 +20,8 @@ public final class RawVolume {
 
   private final String dockerDriverOptions;
 
+  private final List<String> profiles;
+
   private final int size;
 
   private RawVolume(
@@ -25,14 +30,16 @@ public final class RawVolume {
             @JsonProperty("docker_volume_driver") String dockerDriverName,
             @JsonProperty("docker_volume_name") String dockerVolumeName,
             @JsonProperty("docker_driver_options") String dockerDriverOptions,
+            @JsonProperty("profiles") List<String> profiles,
             @JsonProperty("size") int size)
   {
     this.path = path;
     this.type = type;
-    this.size = size;
     this.dockerDriverName = dockerDriverName;
     this.dockerVolumeName = dockerVolumeName;
     this.dockerDriverOptions = dockerDriverOptions;
+    this.profiles = profiles == null ? Collections.emptyList() : profiles;
+    this.size = size;
   }
 
   public String getPath() {
@@ -53,6 +60,10 @@ public final class RawVolume {
 
   public String getDockerDriverOptions() {
     return dockerDriverOptions;
+  }
+
+  public List<String> getProfiles() {
+    return profiles;
   }
 
   public int getSize() {
