@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/mesosphere/dcos-commons/cli"
 	"github.com/mesosphere/dcos-commons/cli/client"
 	"gopkg.in/alecthomas/kingpin.v3-unstable"
@@ -19,7 +21,8 @@ func main() {
 func runNodeList(a *kingpin.Application, e *kingpin.ParseElement, c *kingpin.ParseContext) error {
 	response, err := client.HTTPServiceGet("v1/px/status")
 	if err != nil {
-		client.PrintMessageAndExit(err.Error())
+		client.PrintMessage(err.Error())
+		os.Exit(1)
 	} else {
 		client.PrintJSONBytes(response)
 	}
@@ -29,7 +32,8 @@ func runNodeList(a *kingpin.Application, e *kingpin.ParseElement, c *kingpin.Par
 func runVolumeList(a *kingpin.Application, e *kingpin.ParseElement, c *kingpin.ParseContext) error {
 	response, err := client.HTTPServiceGet("v1/px/volumes")
 	if err != nil {
-		client.PrintMessageAndExit(err.Error())
+		client.PrintMessage(err.Error())
+		os.Exit(1)
 	} else {
 		client.PrintJSONBytes(response)
 	}
