@@ -11,7 +11,7 @@ project(':sdk/testing').name = 'testing'
 
 include 'frameworks/cassandra'
 project(':frameworks/cassandra').name = 'cassandra'
-/*
+
 include 'frameworks/hdfs'
 project(':frameworks/hdfs').name = 'hdfs'
 
@@ -29,4 +29,3 @@ project(":frameworks/portworx").name = "portworx"
 
 include 'frameworks/elastic'
 project(':frameworks/elastic').name = 'elastic'
-*/
