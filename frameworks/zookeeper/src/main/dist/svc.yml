@@ -11,7 +11,6 @@ pods:
       - {{BOOTSTRAP_URI}}
       - {{ZOOKEEPER_URI}}
       - {{JAVA_URI}}
-    user: {{SERVICE_USER}}
     {{#ENABLE_VIRTUAL_NETWORK}}
     networks:
       {{VIRTUAL_NETWORK_NAME}}:
