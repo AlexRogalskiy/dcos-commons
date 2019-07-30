@@ -6,14 +6,14 @@
       "description": "DC/OS service configuration properties",
       "properties": {
         "name": {
-          "description": "Unique name for the service instance consisting of a series of words separated by slashes. Each word must be at least 1 alphanumeric character and may only contain digits (`0-9`), dashes (`-`), dots (`.`), and lowercase letters (`a-z`). The word may not begin or end with a dash",
+          "description": "The name of the service instance",
           "type": "string",
           "default": "portworx-hdfs"
         },
         "user": {
           "description": "The linux user used to run the scheduler and all executors.",
           "type": "string",
-          "default": "nobody"
+          "default": "root"
         },
         "service_account": {
           "description": "The service account for DC/OS service authentication. This is typically left empty to use the default unless service authentication is needed. The value given here is passed as the principal of Mesos framework.",
@@ -24,12 +24,6 @@
           "description": "Name of the Secret Store credentials to use for DC/OS service authentication. This should be left empty unless service authentication is needed.",
           "type": "string",
           "default": ""
-        },
-        "skip_format":{
-          "title": "Skip format and bootstrap",
-          "description":"Check this flag if you want to skip formatting the name node volumes.",
-          "type":"boolean",
-          "default": false
         },
         "virtual_network_enabled": {
           "description": "Enable virtual networking",
@@ -996,17 +990,17 @@
         "name_node_rpc_port": {
           "type": "string",
           "description": "The RPC port for HDFS Name Nodes.",
-          "default": "10001"
+          "default": "9001"
         },
         "name_node_http_port": {
           "type": "string",
           "description": "The HTTP port for HDFS Name Nodes. ",
-          "default": "10002"
+          "default": "9002"
         },
         "name_node_https_port": {
           "type": "string",
           "description": "The HTTPS port for HDFS Name Nodes. ",
-          "default": "10003"
+          "default": "9003"
         },
         "zkfc_port": {
           "type": "string",
@@ -1031,22 +1025,22 @@
         "data_node_rpc_port": {
           "type": "string",
           "description": "The RPC port used by Data Nodes.",
-          "default": "10003"
+          "default": "9003"
         },
         "data_node_http_port": {
           "type": "string",
           "description": "The HTTP port used by Data Nodes.",
-          "default": "10004"
+          "default": "9004"
         },
         "data_node_https_port": {
           "type": "string",
           "description": "The HTTPS port used by Data Nodes.",
-          "default": "10006"
+          "default": "9006"
         },
         "data_node_ipc_port": {
           "type": "string",
           "description": "The IPS port used by Data Nodes.",
-          "default": "10005"
+          "default": "9005"
         },
         "hadoop_opts": {
           "type": "string",

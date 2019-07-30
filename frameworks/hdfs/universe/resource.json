@@ -8,7 +8,8 @@
       "hdfs-jre-tar-gz": "{{jre-url}}",
       "bootstrap-zip": "{{artifact-dir}}/bootstrap.zip",
       "scheduler-zip": "{{artifact-dir}}/hdfs-scheduler.zip",
-      "zone-resolver-sh": "{{artifact-dir}}/zone-resolver.sh"
+      "executor-zip": "{{artifact-dir}}/executor.zip",
+      "zone-resolver-sh": "http://downloads.mesosphere.com/hdfs/assets/zone-resolver.sh"
     }
   },
   "images": {

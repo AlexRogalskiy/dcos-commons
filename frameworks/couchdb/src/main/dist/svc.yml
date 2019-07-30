@@ -54,11 +54,8 @@ pods:
           fi &&
           printf "[couchdb]\ndatabase_dir = $MESOS_SANDBOX/couchdb-container\n" >> /opt/couchdb/etc/local.d/container.ini &&
           printf "view_index_dir = $MESOS_SANDBOX/couchdb-container\n" >> /opt/couchdb/etc/local.d/container.ini &&
-          if [ "{{COUCHDB_USER}}" ] && [ "{{COUCHDB_PASSWORD}}" ] && [ -z "{{COUCHDB_HASHED_PASSWORD}}" ]; then
+          if [ "{{COUCHDB_USER}}" ] && [ "{{COUCHDB_PASSWORD}}" ]; then
               printf "[admins]\n{{COUCHDB_USER}} = {{COUCHDB_PASSWORD}}\n" >> /opt/couchdb/etc/local.d/container.ini
-          fi &&
-          if [ "{{COUCHDB_USER}}" ] && [ "{{COUCHDB_HASHED_PASSWORD}}" ]; then
-              printf "[admins]\n{{COUCHDB_USER}} = {{COUCHDB_HASHED_PASSWORD}}\n" >> /opt/couchdb/etc/local.d/container.ini
           fi &&
           if [ "{{COUCHDB_SECRET}}" ]; then
               printf "[couch_httpd_auth]\nsecret = {{COUCHDB_SECRET}}\n" >> /opt/couchdb/etc/local.d/container.ini
@@ -86,8 +83,6 @@ pods:
           export LD_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/:$LD_LIBRARY_PATH &&
           curl -X POST -H "Content-Type: application/json" http://{{COUCHDB_USER}}:{{COUCHDB_PASSWORD}}@couchdb-$POD_INSTANCE_INDEX-install.$FRAMEWORK_HOST:{{COUCHDB_PORT}}/_cluster_setup -d '{"action": "enable_cluster", "bind_address":"0.0.0.0", "username": "{{COUCHDB_USER}}", "password":"{{COUCHDB_PASSWORD}}", "port": {{COUCHDB_PORT}}, "node_count": "{{NODE_COUNT}}", "remote_node": "'"couchdb-0-install.${FRAMEWORK_HOST}"'", "remote_current_user": "{{COUCHDB_USER}}", "remote_current_password": "{{COUCHDB_PASSWORD}}" }' &&
           curl -X POST -H "Content-Type: application/json" http://{{COUCHDB_USER}}:{{COUCHDB_PASSWORD}}@couchdb-$POD_INSTANCE_INDEX-install.$FRAMEWORK_HOST:{{COUCHDB_PORT}}/_cluster_setup -d '{"action": "add_node", "host": "'"couchdb-0-install.${FRAMEWORK_HOST}"'", "port": "{{COUCHDB_PORT}}", "username": "{{COUCHDB_USER}}", "password":"{{COUCHDB_PASSWORD}}"}'
-
-
 plans:
   deploy:
     strategy: serial

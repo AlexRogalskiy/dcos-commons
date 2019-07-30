@@ -80,18 +80,18 @@ rack=zone0
 }
 
 func TestFilterEnv(t *testing.T) {
-	secureKeys := map[string]string {
-		"my-secret-key": "does-not-matter",
-		"my-cReDeNtIaL-key": "does-not-matter",
+	secureKeys := map[string]string{
+		"my-secret-key":                   "does-not-matter",
+		"my-cReDeNtIaL-key":               "does-not-matter",
 		"DCOS_SERVICE_ACCOUNT_CREDENTIAL": "does-not-matter",
-		"password": "does-not-matter",
-		"tokEN": "does-not-matter",
+		"password":                        "does-not-matter",
+		"tokEN":                           "does-not-matter",
 	}
-	inSecureKeys := map[string]string {
-		"alpha-key": "does-matter",
-		"numeric-key": "67890876",
+	inSecureKeys := map[string]string{
+		"alpha-key":                 "does-matter",
+		"numeric-key":               "67890876",
 		"DCOS_SERVICE_ACCOUNT_CRED": "does-matter",
-		"toke-n": "****.*",
+		"toke-n":                    "****.*",
 	}
 	for k, v := range secureKeys {
 		os.Setenv(k, v)

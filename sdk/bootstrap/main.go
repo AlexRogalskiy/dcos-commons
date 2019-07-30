@@ -147,7 +147,7 @@ func printEnv(printEnvInsecureEnabled bool) {
 }
 
 // loads environment, also filters sensitive environment keys
-func filterEnv(printEnvInsecureEnabled bool) ([]string) {
+func filterEnv(printEnvInsecureEnabled bool) []string {
 	defaultEnviron := os.Environ()
 	if printEnvInsecureEnabled {
 		return defaultEnviron
