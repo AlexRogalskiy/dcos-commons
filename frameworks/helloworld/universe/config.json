@@ -209,6 +209,11 @@
           "type": "integer",
           "default": 25
         },
+        "volume_profile": {
+          "description": "Hello pod persistent volume profile requirements",
+          "type": "string",
+          "default": ""
+        },
         "portworx_volume_name": {
           "description": "Portworx volume name",
           "type": "string",
