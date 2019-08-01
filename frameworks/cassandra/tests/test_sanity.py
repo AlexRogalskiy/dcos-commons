@@ -27,6 +27,8 @@ def configure_package(configure_security):
             additional_options={"service": {"name": config.get_foldered_service_name(), "virtual_network_enabled": True} })
 
         yield  # let the test session execute
+    finally:
+        return
 
 @pytest.mark.sanity
 @pytest.mark.smoke
@@ -69,12 +71,8 @@ def test_repair_cleanup_plans_complete():
                 config.get_verify_data_job(
                     node_address=config.get_foldered_node_address())
             ],
-            after_jobs=[
-                config.get_delete_data_job(
-                    node_address=config.get_foldered_node_address()),
-                config.get_verify_deletion_job(
-                    node_address=config.get_foldered_node_address())
-            ]):
+            after_jobs=[]
+            ):
 
         sdk_plan.start_plan(
             config.get_foldered_service_name(), 'cleanup', parameters=parameters)
@@ -113,7 +111,3 @@ def test_metrics():
 def test_sanity_uninstall_pkg():
     sdk_install.uninstall(config.PACKAGE_NAME,
                           config.get_foldered_service_name())
-
-    for job in test_jobs:
-        sdk_jobs.remove_job(job)
-

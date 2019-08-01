@@ -31,23 +31,26 @@ def kafka_server(configure_security):
         test_utils.wait_for_broker_dns(config.PACKAGE_NAME, config.SERVICE_NAME)
 
         yield {"package_name": config.PACKAGE_NAME, "service": {"name": config.SERVICE_NAME}}
-    finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
 
+    finally:
+        return
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_topic_create(kafka_server: dict):
     test_utils.create_topic(config.EPHEMERAL_TOPIC_NAME, kafka_server["service"]["name"])
 
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_topic_delete(kafka_server: dict):
     test_utils.delete_topic(config.EPHEMERAL_TOPIC_NAME, kafka_server["service"]["name"])
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_topic_partition_count(kafka_server: dict):
     package_name = kafka_server["package_name"]
     service_name = kafka_server["service"]["name"]
@@ -63,6 +66,7 @@ def test_topic_partition_count(kafka_server: dict):
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_topic_offsets_increase_with_writes(kafka_server: dict):
     package_name = kafka_server["package_name"]
     service_name = kafka_server["service"]["name"]
@@ -119,6 +123,7 @@ def test_topic_offsets_increase_with_writes(kafka_server: dict):
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_decreasing_topic_partitions_fails(kafka_server: dict):
     partition_info = sdk_cmd.svc_cli(
         config.PACKAGE_NAME, kafka_server["service"]["name"],
@@ -130,6 +135,7 @@ def test_decreasing_topic_partitions_fails(kafka_server: dict):
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_setting_topic_partitions_to_same_value_fails(kafka_server: dict):
     partition_info = sdk_cmd.svc_cli(
         config.PACKAGE_NAME, kafka_server["service"]["name"],
@@ -141,6 +147,7 @@ def test_setting_topic_partitions_to_same_value_fails(kafka_server: dict):
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_increasing_topic_partitions_succeeds(kafka_server: dict):
     partition_info = sdk_cmd.svc_cli(
         config.PACKAGE_NAME, kafka_server["service"]["name"],
@@ -152,6 +159,7 @@ def test_increasing_topic_partitions_succeeds(kafka_server: dict):
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_no_under_replicated_topics_exist(kafka_server: dict):
     partition_info = sdk_cmd.svc_cli(
         config.PACKAGE_NAME, kafka_server["service"]["name"],
@@ -161,9 +169,16 @@ def test_no_under_replicated_topics_exist(kafka_server: dict):
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_no_unavailable_partitions_exist(kafka_server: dict):
     partition_info = sdk_cmd.svc_cli(
         config.PACKAGE_NAME, kafka_server["service"]["name"],
         'topic unavailable_partitions', json=True)
 
     assert partition_info == {"message": ""}
+
+
+@pytest.mark.sanity
+@pytest.mark.pxkafka
+def uninstall_kafka():
+    sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)

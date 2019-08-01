@@ -29,19 +29,19 @@ def configure_package(configure_security):
                 config.PACKAGE_NAME,
                 foldered_name,
                 config.DEFAULT_TASK_COUNT,
-                additional_options={"service": {"name": foldered_name}},
+                additional_options={"service": {"name": foldered_name, "virtual_network_enabled": True} },
                 timeout_seconds=30 * 60)
         else:
             sdk_upgrade.test_upgrade(
                 config.PACKAGE_NAME,
                 foldered_name,
                 config.DEFAULT_TASK_COUNT,
-                additional_options={"service": {"name": foldered_name}},
+                additional_options={"service": {"name": foldered_name, "virtual_network_enabled": True} },
                 timeout_seconds=30 * 60)
 
         yield  # let the test session execute
     finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, foldered_name)
+        return
 
 
 @pytest.fixture(autouse=True)
@@ -50,6 +50,7 @@ def pre_test_setup():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.smoke
 @pytest.mark.mesos_v0
 def test_mesos_v0_api():
@@ -61,6 +62,7 @@ def test_mesos_v0_api():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 def test_endpoints():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     # check that we can reach the scheduler via admin router, and that returned endpoints are sanitized:
@@ -82,9 +84,9 @@ def test_endpoints():
     for i in range(2):
         name_node = 'name-{}-node'.format(i)
         expect['dfs.namenode.rpc-address.hdfs.{}'.format(name_node)] = sdk_hosts.autoip_host(
-            foldered_name, name_node, 9001)
+            foldered_name, name_node, 10001)
         expect['dfs.namenode.http-address.hdfs.{}'.format(name_node)] = sdk_hosts.autoip_host(
-            foldered_name, name_node, 9002)
+            foldered_name, name_node, 10002)
     check_properties(hdfs_site, expect)
 
 
@@ -113,6 +115,7 @@ def test_kill_journal_node():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_kill_name_node():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -128,6 +131,7 @@ def test_kill_name_node():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_kill_data_node():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -143,6 +147,7 @@ def test_kill_data_node():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_kill_scheduler():
     sdk_cmd.kill_task_with_pattern('hdfs.scheduler.Main', shakedown.get_service_ips('marathon').pop())
@@ -150,6 +155,7 @@ def test_kill_scheduler():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_kill_all_journalnodes():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -167,6 +173,7 @@ def test_kill_all_journalnodes():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_kill_all_namenodes():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -185,6 +192,7 @@ def test_kill_all_namenodes():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_kill_all_datanodes():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -203,6 +211,7 @@ def test_kill_all_datanodes():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_permanently_replace_namenodes():
     replace_name_node(0)
@@ -211,6 +220,7 @@ def test_permanently_replace_namenodes():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_permanent_and_transient_namenode_failures_0_1():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -232,6 +242,7 @@ def test_permanent_and_transient_namenode_failures_0_1():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.recovery
 def test_permanent_and_transient_namenode_failures_1_0():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -258,6 +269,7 @@ def test_install():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 def test_bump_journal_cpus():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     journal_ids = sdk_tasks.get_task_ids(foldered_name, 'journal')
@@ -275,6 +287,7 @@ def test_bump_journal_cpus():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 def test_bump_data_nodes():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     data_ids = sdk_tasks.get_task_ids(foldered_name, 'data')
@@ -288,6 +301,7 @@ def test_bump_data_nodes():
 
 @pytest.mark.readiness_check
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 def test_modify_app_config():
     """This tests checks that the modification of the app config does not trigger a recovery."""
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -318,6 +332,7 @@ def test_modify_app_config():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 def test_modify_app_config_rollback():
     app_config_field = 'TASKCFG_ALL_CLIENT_READ_SHORTCIRCUIT_STREAMS_CACHE_EXPIRY_MS'
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
@@ -355,6 +370,7 @@ def test_modify_app_config_rollback():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxhdfs
 @pytest.mark.metrics
 @pytest.mark.dcos_min_version('1.9')
 def test_metrics():
@@ -395,3 +411,9 @@ def replace_name_node(index):
     sdk_tasks.check_tasks_updated(foldered_name, name_node_name, name_id)
     sdk_tasks.check_tasks_not_updated(foldered_name, 'journal', journal_ids)
     sdk_tasks.check_tasks_not_updated(foldered_name, 'data', data_ids)
+
+@pytest.mark.sanity
+@pytest.mark.pxhdfs
+def test_uninstall_hdfs():
+    foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
+    sdk_install.uninstall(config.PACKAGE_NAME, foldered_name)

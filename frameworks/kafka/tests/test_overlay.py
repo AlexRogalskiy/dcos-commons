@@ -20,12 +20,12 @@ def configure_package(configure_security):
 
         yield  # let the test session execute
     finally:
-        install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
-
+        return
 
 @pytest.mark.overlay
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 @pytest.mark.dcos_min_version('1.9')
 def test_service_overlay_health():
     """Installs SDK based Kafka on with virtual networks set to True. Tests that the deployment completes
@@ -44,6 +44,7 @@ def test_service_overlay_health():
 @pytest.mark.smoke
 @pytest.mark.sanity
 @pytest.mark.overlay
+@pytest.mark.pxkafka
 @pytest.mark.dcos_min_version('1.9')
 def test_overlay_network_deployment_and_endpoints():
     # double check
@@ -60,6 +61,7 @@ def test_overlay_network_deployment_and_endpoints():
 
 @pytest.mark.sanity
 @pytest.mark.overlay
+@pytest.mark.pxkafka
 @pytest.mark.dcos_min_version('1.9')
 def test_pod_restart_on_overlay():
     test_utils.restart_broker_pods()
@@ -68,6 +70,7 @@ def test_pod_restart_on_overlay():
 
 @pytest.mark.sanity
 @pytest.mark.overlay
+@pytest.mark.pxkafka
 @pytest.mark.dcos_min_version('1.9')
 def test_pod_replace_on_overlay():
     test_utils.replace_broker_pod()
@@ -76,6 +79,7 @@ def test_pod_replace_on_overlay():
 
 @pytest.mark.sanity
 @pytest.mark.overlay
+@pytest.mark.pxkafka
 @pytest.mark.dcos_min_version('1.9')
 def test_topic_create_overlay():
     test_utils.create_topic(config.EPHEMERAL_TOPIC_NAME)
@@ -83,6 +87,13 @@ def test_topic_create_overlay():
 
 @pytest.mark.sanity
 @pytest.mark.overlay
+@pytest.mark.pxkafka
 @pytest.mark.dcos_min_version('1.9')
 def test_topic_delete_overlay():
     test_utils.delete_topic(config.EPHEMERAL_TOPIC_NAME)
+
+@pytest.mark.sanity
+@pytest.mark.overlay
+@pytest.mark.pxkafka
+def test_uninstall_kafka():
+    install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)

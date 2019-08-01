@@ -31,16 +31,17 @@ def configure_package(configure_security):
 
         yield  # let the test session execute
     finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, foldered_name)
-
+        return
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 @pytest.mark.smoke
 def test_service_health():
     assert shakedown.service_healthy(sdk_utils.get_foldered_name(config.SERVICE_NAME))
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 @pytest.mark.smoke
 @pytest.mark.mesos_v0
 def test_mesos_v0_api():
@@ -56,6 +57,7 @@ def test_mesos_v0_api():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_endpoints_address():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     @retrying.retry(
@@ -81,6 +83,7 @@ def test_endpoints_address():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_endpoints_zookeeper_default():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     zookeeper = sdk_cmd.svc_cli(config.PACKAGE_NAME, foldered_name, 'endpoints zookeeper')
@@ -89,6 +92,7 @@ def test_endpoints_zookeeper_default():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_custom_zookeeper():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     broker_ids = sdk_tasks.get_task_ids(foldered_name, '{}-'.format(config.DEFAULT_POD_TYPE))
@@ -127,6 +131,7 @@ def test_custom_zookeeper():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_broker_list():
     brokers = sdk_cmd.svc_cli(config.PACKAGE_NAME,
                               sdk_utils.get_foldered_name(config.SERVICE_NAME), 'broker list', json=True)
@@ -135,6 +140,7 @@ def test_broker_list():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_broker_invalid():
     try:
         sdk_cmd.svc_cli(
@@ -152,12 +158,14 @@ def test_broker_invalid():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_pods_restart():
     test_utils.restart_broker_pods(sdk_utils.get_foldered_name(config.SERVICE_NAME))
 
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_pod_replace():
     test_utils.replace_broker_pod(sdk_utils.get_foldered_name(config.SERVICE_NAME))
 
@@ -167,12 +175,14 @@ def test_pod_replace():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_help_cli():
     sdk_cmd.svc_cli(config.PACKAGE_NAME, sdk_utils.get_foldered_name(config.SERVICE_NAME), 'help')
 
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_config_cli():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     configs = sdk_cmd.svc_cli(config.PACKAGE_NAME, foldered_name, 'config list', json=True)
@@ -186,6 +196,7 @@ def test_config_cli():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_plan_cli():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     assert sdk_cmd.svc_cli(config.PACKAGE_NAME, foldered_name, 'plan list', json=True)
@@ -203,6 +214,7 @@ def test_plan_cli():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_state_cli():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     assert sdk_cmd.svc_cli(config.PACKAGE_NAME, foldered_name, 'state framework_id', json=True)
@@ -211,6 +223,7 @@ def test_state_cli():
 
 @pytest.mark.smoke
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 def test_pod_cli():
     foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
     assert sdk_cmd.svc_cli(config.PACKAGE_NAME, foldered_name, 'pod list', json=True)
@@ -221,6 +234,7 @@ def test_pod_cli():
 
 
 @pytest.mark.sanity
+@pytest.mark.pxkafka
 @pytest.mark.metrics
 @pytest.mark.dcos_min_version('1.9')
 def test_metrics():
@@ -240,3 +254,11 @@ def test_metrics():
         config.DEFAULT_KAFKA_TIMEOUT,
         expected_metrics_exist
     )
+
+@pytest.mark.smoke
+@pytest.mark.sanity
+@pytest.mark.pxkafka
+@pytest.mark.metrics
+def test_uninstall_kafka():
+    foldered_name = sdk_utils.get_foldered_name(config.SERVICE_NAME)
+    sdk_install.uninstall(config.PACKAGE_NAME, foldered_name)
