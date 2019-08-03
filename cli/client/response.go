@@ -71,7 +71,7 @@ For more syntax information`,
 	err = defaultResponseCheck(response, body)
 	if err != nil && response.ContentLength > 0 {
 		// Print response payload if there's an error, and add "query failed" so that added ", try --help" looks better
-		err = fmt.Errorf(err.Error() + "\nResponse data (%d bytes): %s\nHTTP query failed", response.ContentLength, body)
+		err = fmt.Errorf(err.Error()+"\nResponse data (%d bytes): %s\nHTTP query failed", response.ContentLength, body)
 	}
 	return body, err
 }

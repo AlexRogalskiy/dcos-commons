@@ -26,11 +26,11 @@ type describePackageResponse struct {
 }
 
 type describeResponse struct {
-	Package         describePackageResponse `json:"package"`
-	UpgradesTo      []string                `json:"upgradesTo"`
-	DowngradesTo    []string                `json:"downgradesTo"`
+	Package      describePackageResponse `json:"package"`
+	UpgradesTo   []string                `json:"upgradesTo"`
+	DowngradesTo []string                `json:"downgradesTo"`
 	// Note: ResolvedOptions is only provided on DC/OS EE 1.10 or later
-	ResolvedOptions map[string]interface{}  `json:"resolvedOptions"`
+	ResolvedOptions map[string]interface{} `json:"resolvedOptions"`
 }
 
 type Package struct {
