@@ -171,10 +171,14 @@ def get_metrics(package_name: str, service_name: str, pod_name: str, task_name: 
         )
 
     app_response = sdk_cmd.cluster_request(
-        "GET", "/system/v1/agent/{}/metrics/v0/containers/{}/app".format(agent_id, task_container_id), retry=False)
-    app_json = json.loads(app_response.text)
-    if app_json['dimensions']['task_name'] == task_name:
-        return app_json['datapoints']
+        "GET",
+        "/system/v1/agent/{}/metrics/v0/containers/{}/app".format(
+            task_to_check.agent_id, task_container_id
+            ),
+            retry=False,
+    )
+    app_response.raise_for_status()	
+    app_json = app_response.json()
 
     if "dimensions" not in app_json:
         log.error("Expected key '%s' not found in app metrics: %s", "dimensions", app_json)
@@ -186,7 +190,7 @@ def get_metrics(package_name: str, service_name: str, pod_name: str, task_name: 
         )
         raise Exception("Expected key 'dimensions.task_name' not found in app metrics")
 
-def check_metrics_presence(emitted_metrics, expected_metrics):
+def check_metrics_presence(emitted_metrics: List[str], expected_metrics: List[str]) -> bool:
     """Check whether a given list contains all
     """
     lower_case_emitted_metrics = set(map(lambda m: m.lower(), emitted_metrics))
@@ -203,21 +207,7 @@ def check_metrics_presence(emitted_metrics, expected_metrics):
         return False
 
     return True
-
-    missing_metrics = []
-    for metric in expected_metrics:
-        if metric.lower() not in lower_case_emitted_metrics:
-            missing_metrics.append(metric)
-
-    if missing_metrics:
-        log.warning("Expected metrics: %s", expected_metrics)
-        log.warning("Emitted metrics: %s", emitted_metrics)
-        log.warning("The following metrics are missing: %s", missing_metrics)
-        return False
-
-    return True
-
-
+    
 def wait_for_service_metrics(
     package_name: str,
     service_name: str,

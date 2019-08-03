@@ -40,7 +40,9 @@ public class SerialStrategy<C extends Element> extends InterruptibleStrategy<C> 
         .filter(el -> !el.isComplete())
         .collect(Collectors.toList());
     Collections.reverse(planElements);
-
+    // internally navigate the chain to see if ALL dependencies are complete.
+    // For example, say we had c->b->a where b is complete but the other two are not. In this situation,
+    // DependencyStrategyHelper would return both c and a as candidates!
     for (int i = 1; i < planElements.size(); i++) {
       C previous = planElements.get(i - 1);
       for (int currIndex = i; currIndex < planElements.size(); currIndex++) {

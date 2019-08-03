@@ -132,7 +132,6 @@ public class TestPodFactory {
                 .cpus(cpu)
                 .memory(mem)
                 .addVolume(VolumeSpec.Type.ROOT.toString(), "", "", null, disk, TestConstants.CONTAINER_PATH, Collections.emptyList())
-                //.addRootVolume(disk, TestConstants.CONTAINER_PATH)
                 .build();
     }
 
