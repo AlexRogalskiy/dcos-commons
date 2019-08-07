@@ -65,7 +65,6 @@
 
     "BOOTSTRAP_URI": "{{resource.assets.uris.bootstrap-zip}}",
     "JAVA_URI": "{{resource.assets.uris.jre-tar-gz}}",
-    "EXECUTOR_URI": "{{resource.assets.uris.executor-zip}}",
     {{#service.secret_name}}
     "DCOS_SERVICE_ACCOUNT_CREDENTIAL": { "secret": "serviceCredential" },
     "MESOS_MODULES": "{\"libraries\":[{\"file\":\"libmesos-bundle\/lib\/mesos\/libdcos_security.so\",\"modules\":[{\"name\": \"com_mesosphere_dcos_ClassicRPCAuthenticatee\"},{\"name\":\"com_mesosphere_dcos_http_Authenticatee\",\"parameters\":[{\"key\":\"jwt_exp_timeout\",\"value\":\"5mins\"},{\"key\":\"preemptive_refresh_duration\",\"value\":\"30mins\"}]}]}]}",

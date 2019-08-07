@@ -5,8 +5,7 @@
       "libmesos-bundle-tar-gz": "{{libmesos-bundle-url}}",
       "zookeeper-tar-gz": "https://s3-us-west-1.amazonaws.com/px-dcos/zookeeper/zookeeper-3.4.11.tar.gz",
       "bootstrap-zip": "{{artifact-dir}}/bootstrap.zip",
-      "scheduler-zip": "{{artifact-dir}}/zookeeper-scheduler.zip",
-      "executor-zip": "{{artifact-dir}}/executor.zip"
+      "scheduler-zip": "{{artifact-dir}}/zookeeper-scheduler.zip"
     }
   },
   "images": {
