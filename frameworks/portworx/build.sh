@@ -23,5 +23,4 @@ $REPO_ROOT_DIR/tools/build_package.sh \
     -a "$FRAMEWORK_DIR/cli/dcos-service-cli-darwin" \
     -a "$FRAMEWORK_DIR/cli/dcos-service-cli.exe" \
     -a "$REPO_ROOT_DIR/sdk/bootstrap/bootstrap.zip" \
-    -a "$REPO_ROOT_DIR/sdk/executor/build/distributions/executor.zip" \
     $@
