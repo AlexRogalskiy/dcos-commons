@@ -9,7 +9,7 @@ before_install:
   - sudo apt-get install -y python3.5
   - sudo apt-get install -y python3-setuptools python3-pip
   - sudo apt-get install -y awscli
-  - eval "$(gimme 1.8.3)"
+  - eval "$(gimme 1.11.5)"
   - sudo ln -sf /usr/bin/python3.5 /usr/bin/python3
   - sudo pip install awscli
 script:
