@@ -25,6 +25,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -136,6 +137,7 @@ public final class Main {
         continue;
       }
       resourceSetBuilder.addResource(PortSpec.newBuilder()
+          .networkNames(Collections.emptyList())
           .portName("px_" + String.valueOf(portNumber))
           .visibility(Protos.DiscoveryInfo.Visibility.CLUSTER)
           .value(Protos.Value.newBuilder()
@@ -154,6 +156,7 @@ public final class Main {
     resourceSetBuilder.addResource(NamedVIPSpec.newBuilder()
         .protocol(DcosConstants.DEFAULT_IP_PROTOCOL)
         .vipPort(sdkRestPort.intValue())
+        .networkNames(Collections.emptyList())
         .portName(SDK_REST_PORT_NAME)
         .visibility(Protos.DiscoveryInfo.Visibility.CLUSTER)
         .value(Protos.Value.newBuilder()

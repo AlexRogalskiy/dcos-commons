@@ -41,7 +41,7 @@ public class PortworxResource {
   public PortworxResource(ServiceSpec serviceSpec) {
     frameworkName = serviceSpec.getName();
     log.info("Using framework name {}", frameworkName);
-    store = new StateStore(CuratorPersister.newBuilder(serviceSpec).build());
+    store = new StateStore(CuratorPersister.newBuilder(serviceSpec).disableLock().build());
   }
 
   @GET
