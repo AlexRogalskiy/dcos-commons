@@ -22,14 +22,13 @@
   },
   {{/service.secret_name}}
   "env": {
-    "SERVICE_USER": "{{service.user}}",
-    "SERVICE_NAME": "{{service.name}}",
     "PACKAGE_NAME": "{{package-name}}",
     "PACKAGE_VERSION": "{{package-version}}",
     "PACKAGE_BUILD_TIME_EPOCH_MS": "{{package-build-time-epoch-ms}}",
     "PACKAGE_BUILD_TIME_STR": "{{package-build-time-str}}",
     "MESOS_API_VERSION": "{{service.mesos_api_version}}",
-    
+
+    "SERVICE_USER": "{{service.user}}",
     "FRAMEWORK_NAME": "{{service.name}}",
     "FRAMEWORK_PRINCIPAL": "{{service.principal}}",
     "PRE_RESERVED_ROLE": "{{service.pre_reserved_role}}",
@@ -92,7 +91,7 @@
     "LIGHTHOUSE_IMAGE": "{{lighthouse.image}}",
     "LIGHTHOUSE_HTTP_PORT": "{{lighthouse.webui_port}}",
     "LIGHTHOUSE_COMPANY_NAME": "{{lighthouse.company_name}}",
-    "LIGHTHOUSE_ADMIN_USER": "{{lighthouse.admin_username}}",
+    "LIGHTHOUSE_ADMIN_USER": "{{lighthouse.admin_username}}"
   },
   "uris": [
     "{{resource.assets.uris.bootstrap-zip}}",
