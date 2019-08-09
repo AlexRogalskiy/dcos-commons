@@ -285,6 +285,18 @@
             "type": "string",
             "default": "Portworx"
           },
+          "server_cert": {
+            "title": "Server Certificate",
+            "description": "Server Certificate to access Lighthouse if you are accessing it via HTTPS",
+            "type": "string",
+            "default": ""
+          },
+          "server_key": {
+            "title": "Server Key",
+            "description": "Server Key to access Lighthouse if you are accessing it via HTTPS",
+            "type": "string",
+            "default": ""
+          },
           "admin_username": {
             "title": "Administrator username",
             "description": "Username to use for the Lighthouse account. This cannot be changed later.",
