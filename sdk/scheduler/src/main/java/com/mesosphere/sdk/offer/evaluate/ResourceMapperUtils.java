@@ -2,9 +2,9 @@ package com.mesosphere.sdk.offer.evaluate;
 
 import com.mesosphere.sdk.offer.LoggingUtils;
 import com.mesosphere.sdk.offer.ResourceUtils;
+import com.mesosphere.sdk.specification.DockerVolumeSpec;
 import com.mesosphere.sdk.specification.ResourceSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
-import com.mesosphere.sdk.specification.DockerVolumeSpec;
 
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;

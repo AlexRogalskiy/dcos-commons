@@ -9,7 +9,7 @@
     "1.3.5-2.0.3"
   ],
   "downgradesTo": [],
-  "minDcosReleaseVersion": "1.9",
+  "minDcosReleaseVersion": "1.11",
   "name": "portworx",
   "version": "{{package-version}}",
   "maintainer": "support@portworx.com",
