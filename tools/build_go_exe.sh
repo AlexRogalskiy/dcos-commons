@@ -66,7 +66,7 @@ esac
 # create a fake gopath structure within the repo at ${REPO}/.gopath/
 export GOPATH=${REPO_ROOT_DIR}/.gopath
 
-GOPATH_REPO_ORG=${ORG_PATH:=github.com/mesosphere}
+GOPATH_REPO_ORG=${ORG_PATH:=github.com/portworx}
 # ex: /.gopath/src/github.com/mesosphere
 GOPATH_REPO_ORG_DIR=${GOPATH}/src/${GOPATH_REPO_ORG}
 # ex: /.gopath/src/github.com/mesosphere/dcos-commons/sdk/cli
