@@ -4,6 +4,7 @@ import com.mesosphere.sdk.offer.LoggingUtils;
 import com.mesosphere.sdk.offer.ResourceUtils;
 import com.mesosphere.sdk.specification.ResourceSpec;
 import com.mesosphere.sdk.specification.VolumeSpec;
+import com.mesosphere.sdk.specification.DockerVolumeSpec;
 
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -61,6 +62,7 @@ class ResourceMapperUtils {
     }
     return resourceSpecs.stream()
         .filter(resourceSpec -> resourceSpec.getName().equals(taskResource.getName()))
+        .filter(resourceSpec -> !(resourceSpec instanceof DockerVolumeSpec))
         .findFirst()
         .map(resourceSpec -> new ResourceLabels(
             resourceSpec,
