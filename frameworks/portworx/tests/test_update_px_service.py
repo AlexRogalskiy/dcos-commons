@@ -191,7 +191,7 @@ def test_update_node_count():
     portworx_service()
     update_options = {
         "node": {
-            "count": 3
+            "count": config.PX_NUM_NODES
             }
         }
 
@@ -200,7 +200,7 @@ def test_update_node_count():
     assert px_status == 2, "PORTWORX: Update node count failed px service status: {}".format(px_status)
 
     px_node_count = px_utils.get_px_node_count()
-    if 3 != px_node_count:
+    if config.PX_NUM_NODES != px_node_count:
         log.info("PORTWORX: Failed to update node count  to 3, node count is: {}".format(px_node_count))
         raise
 
