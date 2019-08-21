@@ -79,8 +79,3 @@ def test_endpoints():
 @pytest.mark.overlay
 def test_overlay_uninstall_pkg():
     sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
-
-    for job in test_jobs:
-        sdk_jobs.remove_job(job)
-
-

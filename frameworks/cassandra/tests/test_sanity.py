@@ -115,7 +115,3 @@ def test_metrics():
 def test_sanity_uninstall_pkg():
     sdk_install.uninstall(config.PACKAGE_NAME,
                           config.get_foldered_service_name())
-
-    for job in test_jobs:
-        sdk_jobs.remove_job(job)
-

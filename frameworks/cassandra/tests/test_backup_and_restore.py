@@ -91,8 +91,3 @@ def test_backup_and_restore_to_s3():
 @pytest.mark.sanity
 def test_bkp_restore_uninstall():
     sdk_install.uninstall(config.PACKAGE_NAME, config.get_foldered_service_name())
-
-    # remove job definitions from metronome
-    for job in test_jobs:
-        sdk_jobs.remove_job(job)
-
