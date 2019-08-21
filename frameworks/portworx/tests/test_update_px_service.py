@@ -176,7 +176,7 @@ def test_create_encrypted_px_volume():
 
 @pytest.mark.pxinstall
 @pytest.mark.sanity
-def test_update_node_count():
+def test_create_set_storage_policy():
     pod_count, pod_list = px_utils.get_px_pod_list()
     if pod_count <= 0:
         log.info("PORTWORX: Can't proceed with storage policy creation, Pod count is: {}".format(pod_count))
