@@ -32,6 +32,8 @@ def service_account(configure_security):
         sdk_cmd.run_cli(
             "security org groups add_user superusers {name}".format(name=name))
         yield {"name": name, "secret": secret}
+    finally:
+        return
 
 @pytest.fixture(scope='module')
 def dcos_ca_bundle():
