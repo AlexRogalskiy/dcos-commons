@@ -27,6 +27,8 @@ def configure_package(configure_security):
             additional_options={"service": {"name": config.get_foldered_service_name(), "virtual_network_enabled": True} })
 
         yield  # let the test session execute
+    finally:
+        return
 
 @pytest.mark.sanity
 @pytest.mark.smoke

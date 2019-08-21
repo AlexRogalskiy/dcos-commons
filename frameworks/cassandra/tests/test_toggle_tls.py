@@ -76,7 +76,7 @@ def cassandra_service(service_account):
 
         yield {**options, **{"package_name": config.PACKAGE_NAME}}
     finally:
-        sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
+        return
 
 
 @pytest.mark.sanity
@@ -206,6 +206,8 @@ def update_service(service: dict, options: dict):
         sdk_plan.wait_for_completed_deployment(service["service"]["name"])
 
 @pytest.mark.sanity
+@pytest.mark.tls
 def test_toggle_tls_uninstall_pkg():
+    sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
     sdk_security.delete_service_account(
         service_account_name=name, service_account_secret=secret)

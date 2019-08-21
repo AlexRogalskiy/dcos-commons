@@ -34,6 +34,8 @@ def configure_package(configure_security):
             additional_options=additional_options)
 
         yield # let the test session execute
+    finally:
+        return
 
 # To disable these tests in local runs where you may lack the necessary credentials,
 # use e.g. "TEST_TYPES=sanity and not aws and not azure":

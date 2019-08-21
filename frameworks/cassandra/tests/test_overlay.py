@@ -24,6 +24,8 @@ def configure_package(configure_security):
             additional_options=sdk_networks.ENABLE_VIRTUAL_NETWORKS_OPTIONS)
 
         yield # let the test session execute
+    finally:
+        return
 
 @pytest.mark.sanity
 @pytest.mark.smoke
