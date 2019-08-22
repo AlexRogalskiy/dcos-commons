@@ -174,7 +174,6 @@ def test_create_encrypted_px_volume():
     px_utils.px_create_encrypted_volume(pod_name, config.PX_SEC_OPTIONS["encrypted_volume_name"], config.PX_SEC_OPTIONS["secret_key"])
     assert px_utils.px_is_vol_encrypted(config.PX_SEC_OPTIONS["encrypted_volume_name"]), "PORTWORX: Failed to create encrypted volume."
 
-@pytest.mark.pxinstall
 @pytest.mark.sanity
 def test_create_set_storage_policy():
     pod_count, pod_list = px_utils.get_px_pod_list()
@@ -184,6 +183,7 @@ def test_create_set_storage_policy():
     pod_name = pod_list[1]
     px_utils.px_storage_policy_create(pod_name)
     px_utils.px_storage_policy_set_default(pod_name)
+    px_utils.px_create_volume(pod_name, "stp_vol1")
 
 @pytest.mark.pxinstall
 @pytest.mark.sanity
