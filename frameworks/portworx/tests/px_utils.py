@@ -178,6 +178,14 @@ def px_is_vol_encrypted(vol_name):
     else:
         return False
 
+def px_is_vol_repl2(vol_name):
+    cmd = "portworx volume list | jq '.[] | select(.locator.name == \"" + vol_name +"\") | .spec.ha_level'"
+    _, vol_ha_level, std_err = sdk_cmd.run_raw_cli(cmd)
+    if vol_ha_level == 2:
+        return True
+    else:
+        return False
+
 def px_create_volume(pod_name, vol_name = "dcos_test_vol", size = 10):
     agent_id = px_get_agent_id(pod_name)
     

@@ -96,6 +96,20 @@ def portworx_service(service_account):
 
         yield {**options, **{"package_name": config.PACKAGE_NAME}}
 
+# Test create storage policy, set it default create volume and verify
+@pytest.mark.sanity
+def test_create_set_storage_policy():
+    pod_count, pod_list = px_utils.get_px_pod_list()
+    if pod_count <= 0:
+        log.info("PORTWORX: Can't proceed with storage policy creation, Pod count is: {}".format(pod_count))
+        raise
+    pod_name = pod_list[1]
+    px_utils.px_storage_policy_create(pod_name)
+    px_utils.px_storage_policy_set_default(pod_name)
+    px_utils.px_create_volume(pod_name, "stp_volume1")
+    assert px_utils.px_is_vol_encrypted(config.PX_SEC_OPTIONS["stp_volume1"]),
+            "PORTWORX: Failed to create repl=2 volume as per storage policy before px_image update"
+
 @pytest.mark.pxinstall
 @pytest.mark.authinstall
 @pytest.mark.install
@@ -112,6 +126,18 @@ def test_update_px_image():
     update_service(update_options, False)
     px_status = px_utils.check_px_status() 
     assert px_status == 2, "PORTWORX: Update Px image failed px service status: {}".format(px_status)
+
+# Verify that storage policy set to default before px image update should work after px image update as well
+@pytest.mark.sanity
+def test_verify_default_storage_policy_after_pximage_update():
+    pod_count, pod_list = px_utils.get_px_pod_list()
+    if pod_count <= 0:
+        log.info("PORTWORX: Can't proceed with storage policy creation, Pod count is: {}".format(pod_count))
+        raise
+    pod_name = pod_list[1]
+    px_utils.px_create_volume(pod_name, "stp_volume2")
+    assert px_utils.px_is_vol_encrypted(config.PX_SEC_OPTIONS["stp_volume2"]),
+            "PORTWORX: Failed to create repl=2 volume as per storage policy after px-image update"
 
 @pytest.mark.authinstall
 @pytest.mark.sanity
@@ -173,17 +199,6 @@ def test_create_encrypted_px_volume():
     pod_name = pod_list[1]
     px_utils.px_create_encrypted_volume(pod_name, config.PX_SEC_OPTIONS["encrypted_volume_name"], config.PX_SEC_OPTIONS["secret_key"])
     assert px_utils.px_is_vol_encrypted(config.PX_SEC_OPTIONS["encrypted_volume_name"]), "PORTWORX: Failed to create encrypted volume."
-
-@pytest.mark.sanity
-def test_create_set_storage_policy():
-    pod_count, pod_list = px_utils.get_px_pod_list()
-    if pod_count <= 0:
-        log.info("PORTWORX: Can't proceed with storage policy creation, Pod count is: {}".format(pod_count))
-        raise
-    pod_name = pod_list[1]
-    px_utils.px_storage_policy_create(pod_name)
-    px_utils.px_storage_policy_set_default(pod_name)
-    px_utils.px_create_volume(pod_name, "stp_vol1")
 
 @pytest.mark.pxinstall
 @pytest.mark.sanity
