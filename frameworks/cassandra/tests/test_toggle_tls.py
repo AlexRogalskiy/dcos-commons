@@ -212,4 +212,5 @@ def update_service(service: dict, options: dict):
 def test_toggle_tls_uninstall_pkg():
     sdk_install.uninstall(config.PACKAGE_NAME, config.SERVICE_NAME)
     sdk_security.delete_service_account(
-        service_account_name=name, service_account_secret=secret)
+            service_account_name=config.SERVICE_NAME,
+            service_account_secret=config.SERVICE_NAME)
