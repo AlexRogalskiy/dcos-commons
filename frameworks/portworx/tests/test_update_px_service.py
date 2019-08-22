@@ -109,8 +109,7 @@ def test_create_set_storage_policy():
     px_utils.px_storage_policy_create(pod_name)
     px_utils.px_storage_policy_set_default(pod_name)
     px_utils.px_create_volume(pod_name, "stp_volume1")
-    assert px_utils.px_is_vol_encrypted(config.PX_SEC_OPTIONS["stp_volume1"]),
-            "PORTWORX: Failed to create repl=2 volume as per storage policy before px_image update"
+    assert px_utils.px_is_vol_repl2("stp_volume1"), "PORTWORX: Failed to create repl=2 volume as per storage policy before px_image update"
 
 @pytest.mark.pxinstall
 @pytest.mark.authinstall
@@ -138,8 +137,7 @@ def test_verify_default_storage_policy_after_pximage_update():
         raise
     pod_name = pod_list[1]
     px_utils.px_create_volume(pod_name, "stp_volume2")
-    assert px_utils.px_is_vol_encrypted(config.PX_SEC_OPTIONS["stp_volume2"]),
-            "PORTWORX: Failed to create repl=2 volume as per storage policy after px-image update"
+    assert px_utils.px_is_vol_repl2("stp_volume2"), "PORTWORX: Failed to create repl=2 volume as per storage policy after px-image update"
 
 @pytest.mark.authinstall
 @pytest.mark.sanity
