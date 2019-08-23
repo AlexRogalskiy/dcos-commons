@@ -210,13 +210,14 @@ def test_update_node_count():
             }
         }
 
+    log.info("PORTWORX: Updating px cluster to : {} nodes".format(config.PX_NUM_NODES))
     update_service(update_options)
     px_status = px_utils.check_px_status() 
     assert px_status == 2, "PORTWORX: Update node count failed px service status: {}".format(px_status)
 
     px_node_count = px_utils.get_px_node_count()
     if config.PX_NUM_NODES != px_node_count:
-        log.info("PORTWORX: Failed to update node count  to 3, node count is: {}".format(px_node_count))
+        log.info("PORTWORX: Failed to update node count  to {}, node count is: {}".format(config.PX_NUM_NODES, px_node_count))
         raise
 
 @pytest.mark.sanity
