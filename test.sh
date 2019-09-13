@@ -143,6 +143,10 @@ case $key in
     PX_AUTH_OPTIONS_ARGS="$2"
     shift
     ;;
+    --px-num-nodes)
+    PX_NUM_NODES_ARGS="$2"
+    shift
+    ;;
     -*)
     echo "Unknown option: $key"
     usage
@@ -273,6 +277,7 @@ docker run --rm \
     -e PX_IMAGE="$PX_IMAGE_ARGS" \
     -e PX_OLD_IMAGE="$PX_OLD_IMAGE_ARGS" \
     -e PX_AUTH_OPTIONS="$PX_AUTH_OPTIONS_ARGS" \
+    -e PX_NUM_NODES="$PX_NUM_NODES_ARGS" \
     $FRAMEWORK_ARGS \
     -e STUB_UNIVERSE_URL="$STUB_UNIVERSE_URL" \
     -v $(pwd):$WORK_DIR \
@@ -281,5 +286,5 @@ docker run --rm \
     -t \
     $DOCKER_INTERACTIVE_FLAGS \
     $DOCKER_ARGS \
-    mesosphere/dcos-commons:latest \
+    portworx/dcos-commons:1.3-0.40.5 \
     $DOCKER_COMMAND
