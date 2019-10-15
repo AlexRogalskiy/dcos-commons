@@ -9,7 +9,6 @@ import sdk_install
 import sdk_metrics
 import sdk_networks
 import sdk_plan
-import sdk_service
 import sdk_tasks
 import sdk_upgrade
 import sdk_utils
