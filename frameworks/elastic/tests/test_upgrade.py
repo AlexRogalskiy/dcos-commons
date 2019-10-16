@@ -32,7 +32,7 @@ def uninstall_packages(configure_security):
 
 
 # TODO(mpereira): it is safe to remove this test after the 6.x release.
-@pytest.mark.sanity
+@pytest.mark.sanity_fail
 @pytest.mark.timeout(30 * 60)
 def test_xpack_update_matrix():
     # Updating from X-Pack 'enabled' to X-Pack security 'enabled' (the default) is more involved
@@ -57,7 +57,7 @@ def test_xpack_update_matrix():
 
 # TODO(mpereira): change this to xpack_security_enabled to xpack_security_enabled after the 6.x
 # release.
-@pytest.mark.sanity
+@pytest.mark.sanity_fail
 @pytest.mark.timeout(30 * 60)
 def test_xpack_security_enabled_update_matrix():
     # Updating from X-Pack 'enabled' to X-Pack security 'enabled' is more involved than the other

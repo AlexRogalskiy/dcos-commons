@@ -8,11 +8,13 @@ import sdk_hosts
 import sdk_install
 import sdk_metrics
 import sdk_networks
+import sdk_marathon
 import sdk_plan
 import sdk_tasks
 import sdk_upgrade
 import sdk_utils
 from tests import config
+from time import sleep
 
 log = logging.getLogger(__name__)
 
