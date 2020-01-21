@@ -695,6 +695,7 @@ public final class DefaultServiceSpec implements ServiceSpec {
     public Builder region(String region) {
       this.region = region;
       return this;
+    }
     public static class ConfigFactory implements ConfigurationFactory<ServiceSpec> {
 
         /**

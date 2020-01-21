@@ -719,32 +719,31 @@ public class PodInfoBuilder {
         return netInfoBuilder.build();
       }
     
-      private static Protos.RLimitInfo getRLimitInfo(Collection<RLimitSpec> rlimits) {
-        Protos.RLimitInfo.Builder rLimitInfoBuilder = Protos.RLimitInfo.newBuilder();
-    for (RLimitSpec rLimit : rlimits) {
-      Optional<Long> soft = rLimit.getSoft();
-      Optional<Long> hard = rLimit.getHard();
-      Protos.RLimitInfo.RLimit.Builder rLimitsBuilder = Protos.RLimitInfo.RLimit.newBuilder()
-          .setType(rLimit.getEnum());
+        private static Protos.RLimitInfo getRLimitInfo(Collection<RLimitSpec> rlimits) {
+            Protos.RLimitInfo.Builder rLimitInfoBuilder = Protos.RLimitInfo.newBuilder();
+            for (RLimitSpec rLimit : rlimits) {
+                Optional<Long> soft = rLimit.getSoft();
+        Optional<Long> hard = rLimit.getHard();
+        Protos.RLimitInfo.RLimit.Builder rLimitsBuilder = Protos.RLimitInfo.RLimit.newBuilder()
+            .setType(rLimit.getEnum());
 
-      // RLimit itself validates that both or neither of these are present.
-      if ((soft.isPresent() && hard.isPresent()) && (soft.get() != RLimitSpec.RLIMIT_INFINITY &&
-          hard.get() != RLimitSpec.RLIMIT_INFINITY))
-      {
-        // If RLIMIT_INFINITY is desired, the RLimitInfo Protobuf exists but both
-        // the hard and soft values are unset.
-        //http://mesos.apache.org/api/latest/java/org/apache/mesos/Protos.RLimitInfo.RLimit.Builder.html#setHard-long-
+        // RLimit itself validates that both or neither of these are present.
+        if ((soft.isPresent() && hard.isPresent()) && (soft.get() != RLimitSpec.RLIMIT_INFINITY &&
+            hard.get() != RLimitSpec.RLIMIT_INFINITY))
+        {
+            // If RLIMIT_INFINITY is desired, the RLimitInfo Protobuf exists but both
+            // the hard and soft values are unset.
+            //http://mesos.apache.org/api/latest/java/org/apache/mesos/Protos.RLimitInfo.RLimit.Builder.html#setHard-long-
 
-        rLimitsBuilder.setSoft(soft.get()).setHard(hard.get());
-      }
-      rLimitInfoBuilder.addRlimits(rLimitsBuilder);
-    }
+            rLimitsBuilder.setSoft(soft.get()).setHard(hard.get());
+        }
+        rLimitInfoBuilder.addRlimits(rLimitsBuilder);
+        }
 
-    return rLimitInfoBuilder.build();
-  }
+        return rLimitInfoBuilder.build();
+        }
 
-        return taskSpec.getReadinessCheck();
-    }
+
 
     private void setReadinessCheck(
             Protos.TaskInfo.Builder taskInfoBuilder,
@@ -784,7 +783,9 @@ public class PodInfoBuilder {
                     .setReadinessCheck(builder.build())
                     .toProto());
         }
+        return taskSpec.getReadinessCheck();
     }
+    
 
     private static void setTaskKillGracePeriod(
             Protos.TaskInfo.Builder taskInfoBuilder,
