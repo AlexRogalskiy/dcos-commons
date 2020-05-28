@@ -181,7 +181,7 @@ def portworx_vol_cleanup():
         log.info("Deleting Portworx Volume: {}".format(vol['locator']['name']))
         cmd = 'sudo pxctl host detach --redirect ' + vol['locator']['name']
         exit_status, output_agent = shakedown.run_command_on_agent(agents[1]['hostname'], cmd, 'vagrant','/ssh/key')
-        cmd = 'sudo pxctl v d -f ' + vol['locator']['name'] 
+        cmd = 'sudo pxctl v d -f ' + vol['locator']['name']
         exit_status, output_agent = shakedown.run_command_on_agent(agents[1]['hostname'], cmd, 'vagrant','/ssh/key')
         if exit_status != True:
             cmd = 'sudo pxctl host detach --redirect ' + vol['locator']['name']
