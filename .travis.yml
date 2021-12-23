@@ -1,6 +1,6 @@
 language: java
 sudo: required
-dist: trusty
+dist: xenial
 jdk:
   - openjdk8
 before_install:
